@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "202512208096",
+    "project_id": "n90-app",
+    "storage_bucket": "n90-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:202512208096:android:66c21103ccd7a4bbb04085",
+        "android_client_info": {
+          "package_name": "com.example.noventa_pro_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3DpH17vmwmPxJFU07E-09pmZBxU7N1v4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
