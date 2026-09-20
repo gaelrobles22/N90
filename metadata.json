@@ -1,0 +1,7 @@
+{
+  "name": "NOVENTA — TODO TU FÚTBOL",
+  "description": "Aplicación móvil nativa para el fútbol amateur: estadísticas, partidos, jugadores, equipos y arbitraje en tiempo real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
