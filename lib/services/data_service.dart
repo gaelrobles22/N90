@@ -1,10 +1,6 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_models.dart';
 
 class DataService {
-  static const _prefix = 'golpro_';
-  late SharedPreferences _prefs;
 
   Field field = Field(
     id: 'field-1',
@@ -38,7 +34,6 @@ class DataService {
   final Map<String, TeamLineup> lineups = {};
 
   Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
     _seed();
   }
 
@@ -267,8 +262,6 @@ class DataService {
     points: pts,
   );
 
-  Future<void> _save(String key, Object value) =>
-      _prefs.setString('$_prefix$key', jsonEncode(value));
 
   Future<void> saveLineup(TeamLineup l) async {
     lineups['${l.matchId}_${l.teamId}'] = l;
@@ -340,11 +333,5 @@ class DataService {
 
   Future<void> updatePlayerPhoto(String id, String path) async {
     players.firstWhere((p) => p.id == id).photoUrl = path;
-  }
-
-  Future<void> reset() async {
-    for (final k in _prefs.getKeys().where((k) => k.startsWith(_prefix)).toList()) {
-      await _prefs.remove(k);
-    }
   }
 }

@@ -434,7 +434,6 @@ class _PlayerRegistrationPageState
         _whatsappController.text.trim(),
         email: email,
         profilePhotoUrl: null,
-        identityDocument: null,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );

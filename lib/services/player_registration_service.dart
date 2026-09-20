@@ -68,8 +68,6 @@ class PlayerRegistrationService {
       email: player.email,
       profilePhotoUrl:
       player.profilePhotoUrl,
-      identityDocument:
-      player.identityDocument,
       createdAt: player.createdAt,
       updatedAt: player.updatedAt,
     );

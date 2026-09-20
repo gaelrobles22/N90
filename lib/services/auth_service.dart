@@ -38,31 +38,18 @@ class AuthService {
       );
     }
 
-    print('AUTH: Iniciando creación de cuenta...');
-    print('AUTH: Email: $normalizedEmail');
-
     try {
-      print('AUTH: Llamando a Firebase...');
-
       final credential = await _auth.createUserWithEmailAndPassword(
         email: normalizedEmail,
         password: password,
       );
 
-      print('AUTH: Firebase respondió correctamente.');
-      print('AUTH: UID: ${credential.user?.uid}');
-      print('AUTH: Email creado: ${credential.user?.email}');
-
       return credential;
     } on FirebaseAuthException catch (e) {
-      print('AUTH ERROR: code=${e.code}');
-      print('AUTH ERROR: message=${e.message}');
-
       throw Exception(
         _getAuthErrorMessage(e),
       );
     } catch (e) {
-      print('AUTH ERROR GENERAL: $e');
       rethrow;
     }
   }

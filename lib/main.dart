@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 
 import 'models/app_models.dart';
-import 'models/field_access_code.dart';
 import 'screens/admin.dart';
 import 'screens/home.dart';
 import 'screens/matches.dart';
@@ -12,7 +11,6 @@ import 'screens/notifications.dart';
 import 'screens/profile.dart';
 import 'screens/rankings.dart';
 import 'screens/referee.dart';
-import 'screens/splash.dart';
 import 'screens/team.dart';
 import 'screens/welcome_page.dart';
 import 'screens/profile_selection.dart';
@@ -95,7 +93,6 @@ class _AppShellState extends State<AppShell> {
  bool started = false;
 
  late Player player;
- FieldAccessCode? playerAccessCode;
 
  @override
  void initState() {
@@ -287,7 +284,7 @@ class _AppShellState extends State<AppShell> {
       context,
       MaterialPageRoute(
        builder: (_) => ProfileSelectionPage(
-        onPlayerAccessGranted: (accessCode) {
+        onPlayerAccessGranted: (_) {
          Navigator.pop(context);
 
          Navigator.push(
@@ -325,12 +322,7 @@ class _AppShellState extends State<AppShell> {
     },
 
     onLogin: () {
-     // Aquí conectaremos posteriormente
-     // la pantalla de Login.
-
-     debugPrint(
-      'Abrir pantalla de login',
-     );
+     // Login se implementará en la siguiente etapa.
     },
    );
   }
