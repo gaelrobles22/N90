@@ -163,7 +163,7 @@ class _TeamSelectionPageState
 
             Positioned.fill(
               child: Container(
-                color: Colors.black.withOpacity(0.78),
+                color: Colors.black.withValues(alpha:0.78),
               ),
             ),
 
@@ -230,7 +230,7 @@ class _TeamSelectionPageState
                   // PROGRESO
                   // ==================================================
 
-                  _ProgressIndicator(
+                  const _ProgressIndicator(
                     currentStep: 5,
                     totalSteps: 6,
                   ),
@@ -286,7 +286,7 @@ class _TeamSelectionPageState
                       ),
                     )
                   else if (_teams.isEmpty)
-                    _EmptyTeamsCard()
+                    const _EmptyTeamsCard()
                   else
                     ..._teams.map(
                           (team) =>
@@ -600,6 +600,7 @@ class _TeamCard
 
 class _EmptyTeamsCard
     extends StatelessWidget {
+  const _EmptyTeamsCard();
   @override
   Widget build(BuildContext context) {
     return Container(

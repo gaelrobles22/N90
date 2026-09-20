@@ -38,7 +38,7 @@ class PlayerHome extends StatelessWidget {
          Text(
           'Tu temporada en NOVENTA',
           style: TextStyle(
-           color: Colors.white.withOpacity(.5),
+           color: Colors.white.withValues(alpha: .5),
            fontSize: 12,
           ),
          ),

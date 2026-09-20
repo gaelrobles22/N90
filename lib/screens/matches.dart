@@ -30,7 +30,7 @@ class MatchesScreen extends StatelessWidget {
             border: Border.all(
               color:
               m.status == MatchStatus.live
-                  ? lime.withOpacity(.45)
+                  ? lime.withValues(alpha:.45)
                   : Colors.white10,
             ),
           ),
@@ -75,7 +75,7 @@ class MatchesScreen extends StatelessWidget {
                       Text(
                         'VS',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(.35),
+                          color: Colors.white.withValues(alpha:.35),
                           fontSize: 9,
                         ),
                       ),

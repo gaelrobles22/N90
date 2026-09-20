@@ -44,8 +44,8 @@ class EliteCard extends StatelessWidget {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(.15),
-                      Colors.black.withOpacity(.96),
+                      Colors.black.withValues(alpha:.15),
+                      Colors.black.withValues(alpha:.96),
                     ],
                   ),
                 ),
@@ -69,7 +69,7 @@ class EliteCard extends StatelessWidget {
                   Text(
                     'ELITE',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(.7),
+                      color: Colors.white.withValues(alpha:.7),
                       fontWeight: FontWeight.bold,
                     ),
                   ),

@@ -46,7 +46,7 @@ class AppNavigation extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         padding: const EdgeInsets.symmetric(vertical: 7),
         decoration: BoxDecoration(
-          color: const Color(0xff141416).withOpacity(.97),
+          color: const Color(0xff141416).withValues(alpha:.97),
           borderRadius: BorderRadius.circular(30),
           border: Border.all(color: Colors.white12),
         ),

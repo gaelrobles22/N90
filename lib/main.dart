@@ -290,7 +290,7 @@ class _AppShellState extends State<AppShell> {
          Navigator.push(
           context,
           MaterialPageRoute(
-           builder: (_) => PlayerRegistrationPage(),
+           builder: (_) => const PlayerRegistrationPage(),
           ),
          );
         },

@@ -136,7 +136,7 @@ class _StartButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(48),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF9DFF21).withOpacity(0.45),
+              color: const Color(0xFF9DFF21).withValues(alpha:0.45),
               blurRadius: 25,
               spreadRadius: 2,
               offset: const Offset(0, 8),

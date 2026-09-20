@@ -37,7 +37,7 @@ class ProfileSelectionPage extends StatelessWidget {
 
             Positioned.fill(
               child: Container(
-                color: Colors.black.withOpacity(0.50),
+                color: Colors.black.withValues(alpha:0.50),
               ),
             ),
 
@@ -328,8 +328,8 @@ class _ProfileCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(28),
-        splashColor: const Color(0xFF9DFF21).withOpacity(0.08),
-        highlightColor: Colors.white.withOpacity(0.02),
+        splashColor: const Color(0xFF9DFF21).withValues(alpha:0.08),
+        highlightColor: Colors.white.withValues(alpha:0.02),
         child: Container(
           height: 125,
           width: double.infinity,

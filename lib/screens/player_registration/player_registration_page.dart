@@ -587,7 +587,7 @@ class _PlayerRegistrationPageState
 
           Positioned.fill(
             child: Container(
-              color: Colors.black.withOpacity(0.75),
+              color: Colors.black.withValues(alpha:0.75),
             ),
           ),
 
@@ -710,7 +710,7 @@ class _PlayerRegistrationPageState
 
         const SizedBox(height: 28),
 
-        _FieldLabel(
+        const _FieldLabel(
           text: 'Nombre',
         ),
 
@@ -725,7 +725,7 @@ class _PlayerRegistrationPageState
 
         const SizedBox(height: 20),
 
-        _FieldLabel(
+        const _FieldLabel(
           text: 'Primer apellido',
         ),
 
@@ -742,7 +742,7 @@ class _PlayerRegistrationPageState
 
         const SizedBox(height: 20),
 
-        _FieldLabel(
+        const _FieldLabel(
           text: 'Segundo apellido',
         ),
 
@@ -759,7 +759,7 @@ class _PlayerRegistrationPageState
 
         const SizedBox(height: 20),
 
-        _FieldLabel(
+        const _FieldLabel(
           text: 'País',
         ),
 
@@ -781,7 +781,7 @@ class _PlayerRegistrationPageState
 
         const SizedBox(height: 20),
 
-        _FieldLabel(
+        const _FieldLabel(
           text: 'Fecha de nacimiento',
         ),
 
@@ -902,7 +902,7 @@ class _PlayerRegistrationPageState
 
         const SizedBox(height: 28),
 
-        _FieldLabel(
+        const _FieldLabel(
           text: 'WhatsApp',
         ),
 
@@ -917,7 +917,7 @@ class _PlayerRegistrationPageState
 
         const SizedBox(height: 20),
 
-        _FieldLabel(
+        const _FieldLabel(
           text: 'Correo electrónico',
         ),
 
@@ -978,7 +978,7 @@ class _PlayerRegistrationPageState
 
         const SizedBox(height: 28),
 
-        _FieldLabel(
+        const _FieldLabel(
           text: 'Contraseña',
         ),
 
@@ -991,7 +991,7 @@ class _PlayerRegistrationPageState
 
         const SizedBox(height: 20),
 
-        _FieldLabel(
+        const _FieldLabel(
           text: 'Confirmar contraseña',
         ),
 
@@ -1036,7 +1036,7 @@ class _PlayerRegistrationPageState
             Container(
               width: 90,
               height: 90,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: _limeColor,
                 shape: BoxShape.circle,
               ),

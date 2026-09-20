@@ -124,7 +124,7 @@ class _TacticalState extends State<_Tactical> {
         height: 420,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: lime.withOpacity(.25)),
+          border: Border.all(color: lime.withValues(alpha:.25)),
           gradient: const LinearGradient(
             colors: [Color(0xff174d26), Color(0xff0b2d18)],
           ),

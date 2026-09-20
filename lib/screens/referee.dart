@@ -46,7 +46,7 @@ class _RefereeState extends State<RefereeScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: lime.withOpacity(.12),
+                color: lime.withValues(alpha:.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
@@ -165,7 +165,7 @@ class _RefereeState extends State<RefereeScreen> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
-                backgroundColor: lime.withOpacity(.1),
+                backgroundColor: lime.withValues(alpha:.1),
                 child: const Icon(Icons.sports_soccer, color: lime),
               ),
               title: Text(
