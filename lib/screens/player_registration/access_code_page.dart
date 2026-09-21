@@ -1,7 +1,27 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../../models/field_access_code.dart';
-import '../../services/field_access_code_service.dart';
+class RegistrationAccess {
+  const RegistrationAccess({
+    required this.code,
+    required this.type,
+    this.fieldId,
+    this.fieldName,
+  });
+
+  final String code;
+
+  /// field
+  /// leagueAdmin
+  final String type;
+
+  final String? fieldId;
+  final String? fieldName;
+
+  bool get isField => type == 'field';
+
+  bool get isLeagueAdmin => type == 'leagueAdmin';
+}
 
 class AccessCodePage extends StatefulWidget {
   const AccessCodePage({
@@ -9,10 +29,12 @@ class AccessCodePage extends StatefulWidget {
     required this.onAccessGranted,
   });
 
-  final void Function(FieldAccessCode accessCode) onAccessGranted;
+  final void Function(RegistrationAccess access)
+  onAccessGranted;
 
   @override
-  State<AccessCodePage> createState() => _AccessCodePageState();
+  State<AccessCodePage> createState() =>
+      _AccessCodePageState();
 }
 
 class _AccessCodePageState extends State<AccessCodePage> {
@@ -21,11 +43,15 @@ class _AccessCodePageState extends State<AccessCodePage> {
 
   final FocusNode _codeFocusNode = FocusNode();
 
-  final FieldAccessCodeService _accessCodeService =
-  FieldAccessCodeService();
+  final FirebaseFirestore _firestore =
+      FirebaseFirestore.instance;
 
   bool _isLoading = false;
+
   String? _errorMessage;
+
+  static const Color _limeColor =
+  Color(0xFF9DFF21);
 
   @override
   void dispose() {
@@ -37,11 +63,13 @@ class _AccessCodePageState extends State<AccessCodePage> {
   Future<void> _validateCode() async {
     FocusScope.of(context).unfocus();
 
-    final code = _codeController.text.trim();
+    final code =
+    _codeController.text.trim().toUpperCase();
 
     if (code.isEmpty) {
       setState(() {
-        _errorMessage = 'Ingresa el código de acceso.';
+        _errorMessage =
+        'Ingresa el código de acceso.';
       });
       return;
     }
@@ -52,12 +80,18 @@ class _AccessCodePageState extends State<AccessCodePage> {
     });
 
     try {
-      final accessCode =
-      await _accessCodeService.validateCode(code);
+      final snapshot = await _firestore
+          .collection('accessCodes')
+          .where(
+        'code',
+        isEqualTo: code,
+      )
+          .limit(1)
+          .get();
 
       if (!mounted) return;
 
-      if (accessCode == null) {
+      if (snapshot.docs.isEmpty) {
         setState(() {
           _isLoading = false;
           _errorMessage =
@@ -66,29 +100,89 @@ class _AccessCodePageState extends State<AccessCodePage> {
         return;
       }
 
+      final document = snapshot.docs.first;
+      final data = document.data();
+
+      final active = data['active'] == true;
+
+      if (!active) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage =
+          'El código no se encuentra activo.';
+        });
+        return;
+      }
+
+      final expiresAt = data['expiresAt'];
+
+      if (expiresAt is Timestamp &&
+          expiresAt.toDate().isBefore(DateTime.now())) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage =
+          'El código de acceso ha expirado.';
+        });
+        return;
+      }
+
+      final type =
+      (data['type'] ?? 'field')
+          .toString()
+          .trim();
+
+      if (type != 'field' &&
+          type != 'leagueAdmin') {
+        setState(() {
+          _isLoading = false;
+          _errorMessage =
+          'El código de acceso no tiene un tipo válido.';
+        });
+        return;
+      }
+
+      final access = RegistrationAccess(
+        code: code,
+        type: type,
+        fieldId: data['fieldId']?.toString(),
+        fieldName: data['fieldName']?.toString(),
+      );
+
+      if (access.isField &&
+          (access.fieldId == null ||
+              access.fieldId!.isEmpty)) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage =
+          'El código de cancha no tiene un campo asociado.';
+        });
+        return;
+      }
+
       setState(() {
         _isLoading = false;
       });
 
-      widget.onAccessGranted(accessCode);
-    } catch (e) {
+      widget.onAccessGranted(access);
+    } catch (_) {
       if (!mounted) return;
 
       setState(() {
         _isLoading = false;
         _errorMessage =
-        'No fue posible validar el código. '
-            'Intenta nuevamente.';
+        'No fue posible validar el código. Intenta nuevamente.';
       });
     }
   }
 
   void _onCodeChanged(String value) {
-    if (_errorMessage != null) {
-      setState(() {
-        _errorMessage = null;
-      });
+    if (_errorMessage == null) {
+      return;
     }
+
+    setState(() {
+      _errorMessage = null;
+    });
   }
 
   @override
@@ -98,10 +192,6 @@ class _AccessCodePageState extends State<AccessCodePage> {
       body: SafeArea(
         child: Stack(
           children: [
-            // =====================================================
-            // FONDO
-            // =====================================================
-
             Positioned.fill(
               child: Image.asset(
                 'assets/images/fondo_bienvenidos.png',
@@ -109,22 +199,17 @@ class _AccessCodePageState extends State<AccessCodePage> {
               ),
             ),
 
-            // =====================================================
-            // OVERLAY
-            // =====================================================
-
             Positioned.fill(
               child: Container(
-                color: Colors.black.withValues(alpha:0.78),
+                color: Colors.black.withValues(
+                  alpha: 0.78,
+                ),
               ),
             ),
 
-            // =====================================================
-            // CONTENIDO
-            // =====================================================
-
             SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
+              physics:
+              const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(
                 33,
                 34,
@@ -132,12 +217,9 @@ class _AccessCodePageState extends State<AccessCodePage> {
                 30,
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
                 children: [
-                  // =================================================
-                  // HEADER
-                  // =================================================
-
                   Row(
                     children: [
                       _BackButton(
@@ -145,11 +227,13 @@ class _AccessCodePageState extends State<AccessCodePage> {
                           Navigator.pop(context);
                         },
                       ),
+
                       const SizedBox(width: 17),
+
                       const Text(
                         'CÓDIGO DE ACCESO',
                         style: TextStyle(
-                          color: Color(0xFF9DFF21),
+                          color: _limeColor,
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 2.2,
@@ -160,183 +244,174 @@ class _AccessCodePageState extends State<AccessCodePage> {
 
                   const SizedBox(height: 42),
 
-                  // =================================================
-                  // TÍTULO
-                  // =================================================
-
                   const Text(
-                    'INGRESA TU\nCÓDIGO DE ACCESO',
+                    'INGRESA TU\nCÓDIGO',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 31,
+                      fontSize: 30,
+                      height: 0.98,
                       fontWeight: FontWeight.w900,
-                      height: 1.04,
-                      letterSpacing: -1.0,
                     ),
                   ),
 
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 13),
 
                   const Text(
-                    'Ingresa el código proporcionado por '
-                        'tu campo de fútbol para comenzar tu registro.',
+                    'El código determinará el tipo de acceso que tienes en NOVENTA.',
                     style: TextStyle(
-                      color: Color(0xFF999999),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400,
-                      height: 1.3,
+                      color: Colors.white60,
+                      fontSize: 14,
+                      height: 1.35,
                     ),
                   ),
 
-                  const SizedBox(height: 35),
+                  const SizedBox(height: 30),
 
-                  // =================================================
-                  // LABEL
-                  // =================================================
-
-                  const Text(
-                    'CÓDIGO DE ACCESO',
-                    style: TextStyle(
-                      color: Color(0xFF999999),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-
-                  const SizedBox(height: 9),
-
-                  // =================================================
-                  // INPUT
-                  // =================================================
-
-                  TextField(
-                    controller: _codeController,
-                    focusNode: _codeFocusNode,
-                    textCapitalization:
-                    TextCapitalization.characters,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    maxLength: 20,
-                    onChanged: _onCodeChanged,
-                    onSubmitted: (_) {
-                      if (!_isLoading) {
-                        _validateCode();
-                      }
-                    },
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.5,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Ej. N90-REF82K',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFF555555),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 1,
-                      ),
-                      counterText: '',
-                      filled: true,
-                      fillColor:
-                      const Color(0xFF171718),
-                      contentPadding:
-                      const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 19,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius:
-                        BorderRadius.circular(18),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF303030),
-                        ),
-                      ),
-                      enabledBorder:
-                      OutlineInputBorder(
-                        borderRadius:
-                        BorderRadius.circular(18),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF303030),
-                        ),
-                      ),
-                      focusedBorder:
-                      OutlineInputBorder(
-                        borderRadius:
-                        BorderRadius.circular(18),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF9DFF21),
-                          width: 1.5,
-                        ),
-                      ),
-                      errorBorder:
-                      OutlineInputBorder(
-                        borderRadius:
-                        BorderRadius.circular(18),
-                        borderSide: const BorderSide(
-                          color: Colors.redAccent,
-                        ),
+                  Container(
+                    padding:
+                    const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF171718),
+                      borderRadius:
+                      BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white12,
                       ),
                     ),
-                  ),
-
-                  // =================================================
-                  // ERROR
-                  // =================================================
-
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: 12),
-                    Row(
+                    child: Column(
                       crossAxisAlignment:
                       CrossAxisAlignment.start,
                       children: [
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          color: Colors.redAccent,
-                          size: 19,
+                        const Text(
+                          'Código de acceso',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight:
+                            FontWeight.w700,
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              color: Colors.redAccent,
-                              fontSize: 13,
-                              height: 1.3,
+
+                        const SizedBox(height: 10),
+
+                        TextField(
+                          controller:
+                          _codeController,
+                          focusNode:
+                          _codeFocusNode,
+                          textCapitalization:
+                          TextCapitalization.characters,
+                          textInputAction:
+                          TextInputAction.done,
+                          onChanged:
+                          _onCodeChanged,
+                          onSubmitted: (_) {
+                            if (!_isLoading) {
+                              _validateCode();
+                            }
+                          },
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight:
+                            FontWeight.w800,
+                            letterSpacing: 2,
+                          ),
+                          decoration:
+                          InputDecoration(
+                            hintText:
+                            'N90-XXXXXX',
+                            hintStyle:
+                            const TextStyle(
+                              color:
+                              Colors.white24,
+                              fontSize: 18,
+                              letterSpacing: 2,
+                            ),
+                            filled: true,
+                            fillColor:
+                            Colors.black26,
+                            contentPadding:
+                            const EdgeInsets
+                                .symmetric(
+                              horizontal: 16,
+                              vertical: 17,
+                            ),
+                            border:
+                            OutlineInputBorder(
+                              borderRadius:
+                              BorderRadius
+                                  .circular(14),
+                              borderSide:
+                              const BorderSide(
+                                color:
+                                Colors.white12,
+                              ),
+                            ),
+                            enabledBorder:
+                            OutlineInputBorder(
+                              borderRadius:
+                              BorderRadius
+                                  .circular(14),
+                              borderSide:
+                              const BorderSide(
+                                color:
+                                Colors.white12,
+                              ),
+                            ),
+                            focusedBorder:
+                            OutlineInputBorder(
+                              borderRadius:
+                              BorderRadius
+                                  .circular(14),
+                              borderSide:
+                              const BorderSide(
+                                color: _limeColor,
+                                width: 1.5,
+                              ),
                             ),
                           ),
                         ),
+
+                        if (_errorMessage !=
+                            null) ...[
+                          const SizedBox(height: 12),
+                          _ErrorMessage(
+                            message:
+                            _errorMessage!,
+                          ),
+                        ],
                       ],
                     ),
-                  ],
+                  ),
 
-                  const SizedBox(height: 28),
-
-                  // =================================================
-                  // BOTÓN
-                  // =================================================
+                  const SizedBox(height: 22),
 
                   SizedBox(
                     width: double.infinity,
-                    height: 56,
+                    height: 54,
                     child: ElevatedButton(
-                      onPressed:
-                      _isLoading ? null : _validateCode,
-                      style: ElevatedButton.styleFrom(
+                      onPressed: _isLoading
+                          ? null
+                          : _validateCode,
+                      style:
+                      ElevatedButton.styleFrom(
                         backgroundColor:
-                        const Color(0xFF9DFF21),
-                        foregroundColor: Colors.black,
+                        _limeColor,
+                        foregroundColor:
+                        Colors.black,
                         disabledBackgroundColor:
-                        const Color(0xFF506610),
-                        disabledForegroundColor:
-                        Colors.black54,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(18),
+                        _limeColor.withValues(
+                          alpha: 0.35,
                         ),
+                        shape:
+                        RoundedRectangleBorder(
+                          borderRadius:
+                          BorderRadius.circular(
+                            16,
+                          ),
+                        ),
+                        elevation: 0,
                       ),
                       child: _isLoading
                           ? const SizedBox(
@@ -345,99 +420,59 @@ class _AccessCodePageState extends State<AccessCodePage> {
                         child:
                         CircularProgressIndicator(
                           strokeWidth: 2.5,
-                          valueColor:
-                          AlwaysStoppedAnimation<
-                              Color>(
-                            Colors.black,
-                          ),
+                          color: Colors.black,
                         ),
                       )
                           : const Text(
                         'CONTINUAR',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight:
                           FontWeight.w900,
-                          letterSpacing: 1.5,
+                          letterSpacing: 1,
                         ),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 30),
-
-                  // =================================================
-                  // INFORMACIÓN
-                  // =================================================
+                  const SizedBox(height: 28),
 
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(18),
+                    padding:
+                    const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF151516),
+                      color: Colors.white
+                          .withValues(alpha: 0.04),
                       borderRadius:
-                      BorderRadius.circular(20),
+                      BorderRadius.circular(16),
                       border: Border.all(
-                        color: const Color(0xFF292929),
+                        color: Colors.white
+                            .withValues(alpha: 0.08),
                       ),
                     ),
-                    child: Row(
+                    child: const Row(
                       crossAxisAlignment:
                       CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color:
-                            const Color(0xFF1D2615),
-                            borderRadius:
-                            BorderRadius.circular(13),
-                          ),
-                          child: const Icon(
-                            Icons.info_outline_rounded,
-                            color:
-                            Color(0xFF9DFF21),
-                            size: 20,
-                          ),
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.white38,
+                          size: 19,
                         ),
-                        const SizedBox(width: 13),
-                        const Expanded(
+                        SizedBox(width: 10),
+                        Expanded(
                           child: Text(
-                            'El código debe ser proporcionado '
-                                'por uno de los campos de fútbol '
-                                'registrados en NOVENTA.',
+                            'Los códigos de cancha permiten registrarte en una cancha. Los códigos especiales pueden darte acceso administrativo.',
                             style: TextStyle(
                               color:
-                              Color(0xFF888888),
+                              Colors.white54,
                               fontSize: 12,
                               height: 1.4,
                             ),
                           ),
                         ),
                       ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // =================================================
-                  // AYUDA
-                  // =================================================
-
-                  Center(
-                    child: TextButton(
-                      onPressed: () {
-                        _showHelpDialog();
-                      },
-                      child: const Text(
-                        '¿No tienes un código?',
-                        style: TextStyle(
-                          color: Color(0xFFAAAAAA),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
                     ),
                   ),
                 ],
@@ -448,56 +483,7 @@ class _AccessCodePageState extends State<AccessCodePage> {
       ),
     );
   }
-
-  void _showHelpDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor:
-          const Color(0xFF191919),
-          shape: RoundedRectangleBorder(
-            borderRadius:
-            BorderRadius.circular(24),
-          ),
-          title: const Text(
-            '¿No tienes un código?',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          content: const Text(
-            'Solicita el código de acceso directamente '
-                'en el campo de fútbol donde juegas.',
-            style: TextStyle(
-              color: Color(0xFF999999),
-              height: 1.4,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text(
-                'ENTENDIDO',
-                style: TextStyle(
-                  color: Color(0xFF9DFF21),
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }
-
-// ==================================================================
-// BOTÓN REGRESAR
-// ==================================================================
 
 class _BackButton extends StatelessWidget {
   const _BackButton({
@@ -508,29 +494,78 @@ class _BackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius:
-        BorderRadius.circular(30),
-        child: Container(
-          width: 54,
-          height: 54,
-          decoration: BoxDecoration(
-            color: const Color(0xFF191919),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: const Color(0xFF303030),
-              width: 1,
-            ),
-          ),
-          child: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.white,
-            size: 19,
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color:
+          Colors.black.withValues(alpha: 0.55),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color:
+            Colors.white.withValues(alpha: 0.14),
           ),
         ),
+        child: const Icon(
+          Icons.arrow_back_ios_new,
+          color: Colors.white,
+          size: 17,
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorMessage extends StatelessWidget {
+  const _ErrorMessage({
+    required this.message,
+  });
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.red.withValues(
+          alpha: 0.10,
+        ),
+        borderRadius:
+        BorderRadius.circular(10),
+        border: Border.all(
+          color: Colors.red.withValues(
+            alpha: 0.25,
+          ),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.error_outline,
+            color: Colors.redAccent,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Colors.redAccent,
+                fontSize: 12,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -53,21 +53,17 @@ class PlayerRegistrationService {
     required String uid,
     required PlayerRegistration player,
   }) async {
-    final playerWithUid =
-    PlayerRegistration(
+    final playerWithUid = PlayerRegistration(
       uid: uid,
       role: player.role,
       name: player.name,
-      firstLastName:
-      player.firstLastName,
-      secondLastName:
-      player.secondLastName,
+      firstLastName: player.firstLastName,
+      secondLastName: player.secondLastName,
       country: player.country,
       birthDate: player.birthDate,
       whatsapp: player.whatsapp,
       email: player.email,
-      profilePhotoUrl:
-      player.profilePhotoUrl,
+      profilePhotoUrl: player.profilePhotoUrl,
       createdAt: player.createdAt,
       updatedAt: player.updatedAt,
     );
@@ -82,15 +78,13 @@ class PlayerRegistrationService {
   }
 
   // ============================================================
-  // OBTENER JUGADOR
+  // OBTENER USUARIO
   // ============================================================
 
-  Future<PlayerRegistration?>
-  getPlayer(
+  Future<PlayerRegistration?> getPlayer(
       String uid,
       ) async {
-    final document =
-    await _firestore
+    final document = await _firestore
         .collection('users')
         .doc(uid)
         .get();
@@ -133,21 +127,6 @@ class PlayerRegistrationService {
 
   // ============================================================
   // RESERVAR NOMBRE
-  //
-  // Colección:
-  //
-  // playerNames/{nombreNormalizado}
-  //
-  // Ejemplo:
-  //
-  // playerNames/
-  //   jonathan gael gonzalez robles
-  //       uid: "abc123"
-  //       fullName: "Jonathan Gael Gonzalez Robles"
-  //       createdAt: ...
-  //
-  // La transacción evita que dos registros simultáneos
-  // puedan reservar el mismo nombre.
   // ============================================================
 
   Future<void> reservePlayerName({
@@ -179,47 +158,15 @@ class PlayerRegistrationService {
         .collection('playerNames')
         .doc(fullNameNormalized);
 
-    debugPrint(
-      'PLAYER NAME: REFERENCIA CREADA',
-    );
-
     try {
-      debugPrint(
-        'PLAYER NAME: INICIANDO TRANSACTION...',
-      );
-
       await _firestore.runTransaction(
             (transaction) async {
-          debugPrint(
-            'PLAYER NAME: DENTRO DE TRANSACTION',
-          );
-
-          debugPrint(
-            'PLAYER NAME: LEYENDO DOCUMENTO...',
-          );
-
           final existingDocument =
           await transaction.get(nameReference);
 
-          debugPrint(
-            'PLAYER NAME: LECTURA COMPLETADA',
-          );
-
-          debugPrint(
-            'PLAYER NAME: EXISTE = ${existingDocument.exists}',
-          );
-
           if (existingDocument.exists) {
-            debugPrint(
-              'PLAYER NAME: NOMBRE YA EXISTE',
-            );
-
             throw const PlayerNameAlreadyExistsException();
           }
-
-          debugPrint(
-            'PLAYER NAME: CREANDO RESERVA...',
-          );
 
           transaction.set(
             nameReference,
@@ -232,21 +179,12 @@ class PlayerRegistrationService {
               FieldValue.serverTimestamp(),
             },
           );
-
-          debugPrint(
-            'PLAYER NAME: RESERVA AGREGADA A TRANSACTION',
-          );
         },
-      );
-
-      debugPrint(
-        'PLAYER NAME: TRANSACTION COMPLETADA',
       );
 
       debugPrint(
         'PLAYER NAME: NOMBRE RESERVADO CORRECTAMENTE',
       );
-
       debugPrint('========================================');
     } catch (e, stackTrace) {
       debugPrint(
@@ -263,17 +201,13 @@ class PlayerRegistrationService {
 
   // ============================================================
   // ELIMINAR RESERVA DE NOMBRE
-  //
-  // Se utiliza si después de reservar el nombre ocurre
-  // un error al crear users/{uid}.
   // ============================================================
 
   Future<void> releasePlayerName({
     required String fullNameNormalized,
     required String uid,
   }) async {
-    final nameReference =
-    _firestore
+    final nameReference = _firestore
         .collection('playerNames')
         .doc(fullNameNormalized);
 
@@ -313,18 +247,121 @@ class PlayerRegistrationService {
   }
 
   // ============================================================
-  // OBTENER INSCRIPCIONES DEL JUGADOR
+  // CREAR INSCRIPCIÓN PARA UN JUGADOR
+  //
+  // Esta función se utiliza después del login cuando el jugador
+  // selecciona su equipo.
+  // ============================================================
+
+  Future<PlayerEnrollment> createPlayerEnrollment({
+    required String playerId,
+    required String fieldId,
+    required String teamId,
+    String? seasonId,
+  }) async {
+    if (playerId.trim().isEmpty) {
+      throw Exception(
+        'El jugador no tiene un UID válido.',
+      );
+    }
+
+    if (fieldId.trim().isEmpty) {
+      throw Exception(
+        'El campo es obligatorio.',
+      );
+    }
+
+    if (teamId.trim().isEmpty) {
+      throw Exception(
+        'El equipo es obligatorio.',
+      );
+    }
+
+    // Evita crear otra inscripción activa para el mismo
+    // jugador, campo y equipo.
+    final existingSnapshot = await _firestore
+        .collection('playerEnrollments')
+        .where(
+      'playerId',
+      isEqualTo: playerId,
+    )
+        .where(
+      'fieldId',
+      isEqualTo: fieldId,
+    )
+        .where(
+      'teamId',
+      isEqualTo: teamId,
+    )
+        .where(
+      'status',
+      isEqualTo: 'active',
+    )
+        .limit(1)
+        .get();
+
+    if (existingSnapshot.docs.isNotEmpty) {
+      final existingDocument =
+          existingSnapshot.docs.first;
+
+      return PlayerEnrollment.fromMap(
+        {
+          ...existingDocument.data(),
+          'id': existingDocument.id,
+        },
+      );
+    }
+
+    final now = DateTime.now();
+
+    final enrollmentId =
+        '${fieldId}_${playerId}_${teamId}';
+
+    final enrollment = PlayerEnrollment(
+      id: enrollmentId,
+      playerId: playerId,
+      fieldId: fieldId,
+      teamId: teamId,
+      seasonId: seasonId,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    await createEnrollment(enrollment);
+
+    debugPrint(
+      '========================================',
+    );
+    debugPrint(
+      'NOVENTA - INSCRIPCIÓN CREADA',
+    );
+    debugPrint(
+      'Player: $playerId',
+    );
+    debugPrint(
+      'Field: $fieldId',
+    );
+    debugPrint(
+      'Team: $teamId',
+    );
+    debugPrint(
+      '========================================',
+    );
+
+    return enrollment;
+  }
+
+  // ============================================================
+  // OBTENER INSCRIPCIONES
   // ============================================================
 
   Future<List<PlayerEnrollment>>
   getPlayerEnrollments(
       String playerId,
       ) async {
-    final snapshot =
-    await _firestore
-        .collection(
-      'playerEnrollments',
-    )
+    final snapshot = await _firestore
+        .collection('playerEnrollments')
         .where(
       'playerId',
       isEqualTo: playerId,
@@ -351,11 +388,8 @@ class PlayerRegistrationService {
   getActiveEnrollments(
       String playerId,
       ) async {
-    final snapshot =
-    await _firestore
-        .collection(
-      'playerEnrollments',
-    )
+    final snapshot = await _firestore
+        .collection('playerEnrollments')
         .where(
       'playerId',
       isEqualTo: playerId,

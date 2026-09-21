@@ -1,27 +1,517 @@
-enum UserRole { player, managerTeam, referee, adminField }
-enum Position { por, def, med, del }
-enum VerificationStatus { verified, pending, rejected }
-enum MatchStatus { scheduled, live, finished, suspended }
-enum MatchEventType { goal, assist, yellowCard, redCard, substitution, matchStarted, matchEnded }
+// ============================================================
+// NOVENTA - APP MODELS
+// ============================================================
 
-Position positionFromString(String v) => Position.values.firstWhere((e) => e.name.toUpperCase() == v.toUpperCase(), orElse: () => Position.del);
-String positionLabel(Position p) => switch (p) { Position.por => 'Portero', Position.def => 'Defensa', Position.med => 'Medio', Position.del => 'Delantero' };
+enum UserRole {
+  player,
+  managerTeam,
+  referee,
+  adminField,
+}
 
-class PlayerStats { int matchesPlayed, goals, assists, yellowCards, redCards; double rating;
-  PlayerStats({this.matchesPlayed=0,this.goals=0,this.assists=0,this.yellowCards=0,this.redCards=0,this.rating=0});
-  Map<String,dynamic> toJson()=>{'matchesPlayed':matchesPlayed,'goals':goals,'assists':assists,'yellowCards':yellowCards,'redCards':redCards,'rating':rating};
-  factory PlayerStats.fromJson(Map<String,dynamic> j)=>PlayerStats(matchesPlayed:j['matchesPlayed']??0,goals:j['goals']??0,assists:j['assists']??0,yellowCards:j['yellowCards']??0,redCards:j['redCards']??0,rating:(j['rating']??0).toDouble());
+// ============================================================
+// POSITION
+// ============================================================
+
+enum Position {
+  por,
+  def,
+  med,
+  del,
 }
-class Player { String id, fullName, photoUrl, teamId, teamName; Position position; int dorsal; double overallRating; VerificationStatus verificationStatus; PlayerStats stats;
-  Player({required this.id,required this.fullName,required this.position,required this.dorsal,required this.photoUrl,required this.overallRating,required this.verificationStatus,required this.teamId,required this.teamName,required this.stats});
-  Map<String,dynamic> toJson()=>{'id':id,'fullName':fullName,'position':position.name,'dorsal':dorsal,'photoUrl':photoUrl,'overallRating':overallRating,'verificationStatus':verificationStatus.name,'teamId':teamId,'teamName':teamName,'stats':stats.toJson()};
-  factory Player.fromJson(Map<String,dynamic> j)=>Player(id:j['id'],fullName:j['fullName'],position:positionFromString(j['position']),dorsal:j['dorsal']??10,photoUrl:j['photoUrl']??'',overallRating:(j['overallRating']??0).toDouble(),verificationStatus:VerificationStatus.values.firstWhere((e)=>e.name==j['verificationStatus'],orElse:()=>VerificationStatus.verified),teamId:j['teamId']??'',teamName:j['teamName']??'',stats:PlayerStats.fromJson(Map<String,dynamic>.from(j['stats']??{})));
+
+Position positionFromString(String v) => Position.values.firstWhere(
+      (e) => e.name.toUpperCase() == v.toUpperCase(),
+  orElse: () => Position.del,
+);
+
+String positionLabel(Position p) => switch (p) {
+  Position.por => 'Portero',
+  Position.def => 'Defensa',
+  Position.med => 'Medio',
+  Position.del => 'Delantero',
+};
+
+// ============================================================
+// VERIFICATION
+// ============================================================
+
+enum VerificationStatus {
+  verified,
+  pending,
+  rejected,
 }
-class Field { String id,name,logoUrl,photoUrl,location,description,adminId; int activeLeaguesCount; Field({required this.id,required this.name,required this.logoUrl,required this.photoUrl,required this.location,required this.description,required this.adminId,required this.activeLeaguesCount}); }
-class League { String id,fieldId,name,season,category,rules; League({required this.id,required this.fieldId,required this.name,required this.season,required this.category,required this.rules}); }
-class Team { String id,leagueId,fieldId,name,crestUrl,managerId; List<String> colors; int? positionInTable; Team({required this.id,required this.leagueId,required this.fieldId,required this.name,required this.crestUrl,required this.colors,required this.managerId,this.positionInTable}); Map<String,dynamic> toJson()=>{'id':id,'leagueId':leagueId,'fieldId':fieldId,'name':name,'crestUrl':crestUrl,'colors':colors,'managerId':managerId,'positionInTable':positionInTable}; factory Team.fromJson(Map<String,dynamic> j)=>Team(id:j['id'],leagueId:j['leagueId'],fieldId:j['fieldId'],name:j['name'],crestUrl:j['crestUrl']??'',colors:List<String>.from(j['colors']??[]),managerId:j['managerId']??'',positionInTable:j['positionInTable']); }
-class Match { String id,leagueId,fieldId,homeTeamId,homeTeamName,homeTeamCrest,awayTeamId,awayTeamName,awayTeamCrest,date,time,refereeId,refereeName,venueName; int matchday,homeScore,awayScore; MatchStatus status; Match({required this.id,required this.leagueId,required this.fieldId,required this.homeTeamId,required this.homeTeamName,required this.homeTeamCrest,required this.awayTeamId,required this.awayTeamName,required this.awayTeamCrest,required this.date,required this.time,required this.matchday,required this.status,required this.homeScore,required this.awayScore,required this.refereeId,required this.refereeName,required this.venueName}); }
-class Standing { String id,leagueId,teamId,teamName,crestUrl; int played,won,drawn,lost,goalsFor,goalsAgainst,goalDifference,points; Standing({required this.id,required this.leagueId,required this.teamId,required this.teamName,required this.crestUrl,required this.played,required this.won,required this.drawn,required this.lost,required this.goalsFor,required this.goalsAgainst,required this.goalDifference,required this.points}); }
-class LineupPlayer { String playerId,name; int dorsal; Position position; bool isStarter; double x,y; LineupPlayer({required this.playerId,required this.name,required this.dorsal,required this.position,required this.isStarter,required this.x,required this.y}); }
-class TeamLineup { String matchId,teamId,formation; List<LineupPlayer> players; TeamLineup({required this.matchId,required this.teamId,required this.formation,required this.players}); }
-class MatchEvent { String id,matchId,teamId,playerId,playerName,refereeId; MatchEventType type; int minute; String? secondaryPlayerId,secondaryPlayerName; int timestamp; MatchEvent({required this.id,required this.matchId,required this.type,required this.teamId,required this.playerId,required this.playerName,required this.minute,required this.refereeId,required this.timestamp,this.secondaryPlayerId,this.secondaryPlayerName}); }
+
+// ============================================================
+// MATCH STATUS
+// ============================================================
+
+enum MatchStatus {
+  scheduled,
+  live,
+  finished,
+  suspended,
+}
+
+// ============================================================
+// MATCH EVENT TYPE
+// ============================================================
+
+enum MatchEventType {
+  goal,
+  assist,
+  yellowCard,
+  redCard,
+  substitution,
+  matchStarted,
+  matchEnded,
+}
+
+// ============================================================
+// PLAYER STATS
+// ============================================================
+
+class PlayerStats {
+  int matchesPlayed;
+  int goals;
+  int assists;
+  int yellowCards;
+  int redCards;
+  double rating;
+
+  PlayerStats({
+    this.matchesPlayed = 0,
+    this.goals = 0,
+    this.assists = 0,
+    this.yellowCards = 0,
+    this.redCards = 0,
+    this.rating = 0,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'matchesPlayed': matchesPlayed,
+    'goals': goals,
+    'assists': assists,
+    'yellowCards': yellowCards,
+    'redCards': redCards,
+    'rating': rating,
+  };
+
+  factory PlayerStats.fromJson(Map<String, dynamic> j) {
+    return PlayerStats(
+      matchesPlayed: _toInt(j['matchesPlayed']),
+      goals: _toInt(j['goals']),
+      assists: _toInt(j['assists']),
+      yellowCards: _toInt(j['yellowCards']),
+      redCards: _toInt(j['redCards']),
+      rating: _toDouble(j['rating']),
+    );
+  }
+}
+
+// ============================================================
+// PLAYER
+// ============================================================
+
+class Player {
+  String id;
+  String fullName;
+  String photoUrl;
+  String teamId;
+  String teamName;
+
+  Position position;
+
+  int dorsal;
+
+  double overallRating;
+
+  VerificationStatus verificationStatus;
+
+  PlayerStats stats;
+
+  Player({
+    required this.id,
+    required this.fullName,
+    required this.position,
+    required this.dorsal,
+    required this.photoUrl,
+    required this.overallRating,
+    required this.verificationStatus,
+    required this.teamId,
+    required this.teamName,
+    required this.stats,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'fullName': fullName,
+    'position': position.name,
+    'dorsal': dorsal,
+    'photoUrl': photoUrl,
+    'overallRating': overallRating,
+    'verificationStatus': verificationStatus.name,
+    'teamId': teamId,
+    'teamName': teamName,
+    'stats': stats.toJson(),
+  };
+
+  factory Player.fromJson(Map<String, dynamic> j) {
+    return Player(
+      id: j['id']?.toString() ?? '',
+      fullName: j['fullName']?.toString() ?? '',
+      position: positionFromString(
+        j['position']?.toString() ?? 'del',
+      ),
+      dorsal: _toInt(
+        j['dorsal'],
+        defaultValue: 10,
+      ),
+      photoUrl: j['photoUrl']?.toString() ?? '',
+      overallRating: _toDouble(j['overallRating']),
+      verificationStatus:
+      VerificationStatus.values.firstWhere(
+            (e) => e.name == j['verificationStatus']?.toString(),
+        orElse: () => VerificationStatus.verified,
+      ),
+      teamId: j['teamId']?.toString() ?? '',
+      teamName: j['teamName']?.toString() ?? '',
+      stats: PlayerStats.fromJson(
+        j['stats'] is Map
+            ? Map<String, dynamic>.from(j['stats'])
+            : {},
+      ),
+    );
+  }
+}
+
+// ============================================================
+// FIELD
+// ============================================================
+
+class Field {
+  String id;
+  String name;
+  String logoUrl;
+  String photoUrl;
+  String location;
+  String description;
+  String adminId;
+
+  int activeLeaguesCount;
+
+  Field({
+    required this.id,
+    required this.name,
+    required this.logoUrl,
+    required this.photoUrl,
+    required this.location,
+    required this.description,
+    required this.adminId,
+    required this.activeLeaguesCount,
+  });
+}
+
+// ============================================================
+// LEAGUE
+// ============================================================
+
+class League {
+  String id;
+  String fieldId;
+  String name;
+  String season;
+  String category;
+  String rules;
+
+  League({
+    required this.id,
+    required this.fieldId,
+    required this.name,
+    required this.season,
+    required this.category,
+    required this.rules,
+  });
+}
+
+// ============================================================
+// TEAM
+// ============================================================
+
+class Team {
+  String id;
+  String leagueId;
+  String fieldId;
+  String name;
+  String crestUrl;
+  List<String> colors;
+  String managerId;
+
+  int? positionInTable;
+
+  Team({
+    required this.id,
+    required this.leagueId,
+    required this.fieldId,
+    required this.name,
+    required this.crestUrl,
+    required this.colors,
+    required this.managerId,
+    this.positionInTable,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'leagueId': leagueId,
+    'fieldId': fieldId,
+    'name': name,
+    'crestUrl': crestUrl,
+    'colors': colors,
+    'managerId': managerId,
+    'positionInTable': positionInTable,
+  };
+
+  factory Team.fromJson(Map<String, dynamic> j) {
+    final rawColors = j['colors'];
+
+    List<String> parsedColors = [];
+
+    if (rawColors is List) {
+      parsedColors = rawColors
+          .map(
+            (item) => item?.toString() ?? '',
+      )
+          .where(
+            (item) => item.isNotEmpty,
+      )
+          .toList();
+    }
+
+    return Team(
+      id: j['id']?.toString() ?? '',
+      leagueId: j['leagueId']?.toString() ?? '',
+      fieldId: j['fieldId']?.toString() ?? '',
+      name: j['name']?.toString() ?? '',
+      crestUrl: j['crestUrl']?.toString() ?? '',
+      colors: parsedColors,
+      managerId: j['managerId']?.toString() ?? '',
+      positionInTable: j['positionInTable'] is num
+          ? (j['positionInTable'] as num).toInt()
+          : null,
+    );
+  }
+}
+
+// ============================================================
+// MATCH
+// ============================================================
+
+class Match {
+  String id;
+  String leagueId;
+  String fieldId;
+
+  String homeTeamId;
+  String homeTeamName;
+  String homeTeamCrest;
+
+  String awayTeamId;
+  String awayTeamName;
+  String awayTeamCrest;
+
+  String date;
+  String time;
+
+  String refereeId;
+  String refereeName;
+
+  String venueName;
+
+  int matchday;
+  int homeScore;
+  int awayScore;
+
+  MatchStatus status;
+
+  Match({
+    required this.id,
+    required this.leagueId,
+    required this.fieldId,
+    required this.homeTeamId,
+    required this.homeTeamName,
+    required this.homeTeamCrest,
+    required this.awayTeamId,
+    required this.awayTeamName,
+    required this.awayTeamCrest,
+    required this.date,
+    required this.time,
+    required this.matchday,
+    required this.status,
+    required this.homeScore,
+    required this.awayScore,
+    required this.refereeId,
+    required this.refereeName,
+    required this.venueName,
+  });
+}
+
+// ============================================================
+// STANDING
+// ============================================================
+
+class Standing {
+  String id;
+  String leagueId;
+
+  String teamId;
+  String teamName;
+  String crestUrl;
+
+  int played;
+  int won;
+  int drawn;
+  int lost;
+
+  int goalsFor;
+  int goalsAgainst;
+  int goalDifference;
+  int points;
+
+  Standing({
+    required this.id,
+    required this.leagueId,
+    required this.teamId,
+    required this.teamName,
+    required this.crestUrl,
+    required this.played,
+    required this.won,
+    required this.drawn,
+    required this.lost,
+    required this.goalsFor,
+    required this.goalsAgainst,
+    required this.goalDifference,
+    required this.points,
+  });
+}
+
+// ============================================================
+// LINEUP PLAYER
+// ============================================================
+
+class LineupPlayer {
+  String playerId;
+  String name;
+
+  int dorsal;
+
+  Position position;
+
+  bool isStarter;
+
+  double x;
+  double y;
+
+  LineupPlayer({
+    required this.playerId,
+    required this.name,
+    required this.dorsal,
+    required this.position,
+    required this.isStarter,
+    required this.x,
+    required this.y,
+  });
+}
+
+// ============================================================
+// TEAM LINEUP
+// ============================================================
+
+class TeamLineup {
+  String matchId;
+  String teamId;
+  String formation;
+
+  List<LineupPlayer> players;
+
+  TeamLineup({
+    required this.matchId,
+    required this.teamId,
+    required this.formation,
+    required this.players,
+  });
+}
+
+// ============================================================
+// MATCH EVENT
+// ============================================================
+
+class MatchEvent {
+  String id;
+  String matchId;
+
+  MatchEventType type;
+
+  String teamId;
+
+  String playerId;
+  String playerName;
+
+  String? secondaryPlayerId;
+  String? secondaryPlayerName;
+
+  int minute;
+
+  String refereeId;
+
+  int timestamp;
+
+  MatchEvent({
+    required this.id,
+    required this.matchId,
+    required this.type,
+    required this.teamId,
+    required this.playerId,
+    required this.playerName,
+    this.secondaryPlayerId,
+    this.secondaryPlayerName,
+    required this.minute,
+    required this.refereeId,
+    required this.timestamp,
+  });
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+int _toInt(
+    dynamic value, {
+      int defaultValue = 0,
+    }) {
+  if (value is int) {
+    return value;
+  }
+
+  if (value is num) {
+    return value.toInt();
+  }
+
+  return int.tryParse(
+    value?.toString() ?? '',
+  ) ??
+      defaultValue;
+}
+
+double _toDouble(dynamic value) {
+  if (value is double) {
+    return value;
+  }
+
+  if (value is num) {
+    return value.toDouble();
+  }
+
+  return double.tryParse(
+    value?.toString() ?? '',
+  ) ??
+      0;
+}

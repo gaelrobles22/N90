@@ -1,34 +1,48 @@
 import 'package:flutter/material.dart';
 
-import '../../models/field_access_code.dart';
 import '../../models/team.dart';
+import '../../services/player_registration_service.dart';
 import '../../services/team_service.dart';
 
-class TeamSelectionPage extends StatefulWidget {
-  const TeamSelectionPage({
+class PlayerTeamSelectionPage
+    extends StatefulWidget {
+  const PlayerTeamSelectionPage({
     super.key,
-    required this.accessCode,
-    required this.onTeamSelected,
+    required this.uid,
+    required this.fieldId,
+    required this.fieldName,
+    required this.onTeamAssigned,
   });
 
-  final FieldAccessCode accessCode;
+  final String uid;
+  final String fieldId;
+  final String fieldName;
 
-  final void Function(FieldTeam team) onTeamSelected;
+  final Future<void> Function(
+      FieldTeam team,
+      ) onTeamAssigned;
 
   @override
-  State<TeamSelectionPage> createState() =>
-      _TeamSelectionPageState();
+  State<PlayerTeamSelectionPage>
+  createState() =>
+      _PlayerTeamSelectionPageState();
 }
 
-class _TeamSelectionPageState
-    extends State<TeamSelectionPage> {
-  final TeamService _teamService = TeamService();
+class _PlayerTeamSelectionPageState
+    extends State<PlayerTeamSelectionPage> {
+  final TeamService _teamService =
+  TeamService();
+
+  final PlayerRegistrationService
+  _registrationService =
+  PlayerRegistrationService();
 
   List<FieldTeam> _teams = [];
 
   String? _selectedTeamId;
 
   bool _isLoading = true;
+  bool _isSaving = false;
 
   String? _errorMessage;
 
@@ -39,10 +53,6 @@ class _TeamSelectionPageState
     _loadTeams();
   }
 
-  // ============================================================
-  // CARGAR EQUIPOS DEL CAMPO
-  // ============================================================
-
   Future<void> _loadTeams() async {
     setState(() {
       _isLoading = true;
@@ -50,55 +60,28 @@ class _TeamSelectionPageState
     });
 
     try {
-      debugPrint(
-        '========================================',
-      );
-
-      debugPrint(
-        'NOVENTA - CARGANDO EQUIPOS',
-      );
-
-      debugPrint(
-        'Field ID: ${widget.accessCode.fieldId}',
-      );
-
-      debugPrint(
-        'Campo: ${widget.accessCode.fieldName}',
-      );
-
       final teams =
       await _teamService.getTeamsByField(
-        widget.accessCode.fieldId,
+        widget.fieldId,
       );
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         _teams = teams;
         _isLoading = false;
       });
-
-      debugPrint(
-        'Equipos encontrados: ${teams.length}',
-      );
-
-      for (final team in teams) {
-        debugPrint(
-          'Equipo: ${team.id} - ${team.name}',
-        );
-      }
-
-      debugPrint(
-        '========================================',
-      );
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         _isLoading = false;
         _errorMessage =
-        'No fue posible cargar los equipos. '
-            'Intenta nuevamente.';
+        'No fue posible cargar los equipos.';
       });
 
       debugPrint(
@@ -107,22 +90,18 @@ class _TeamSelectionPageState
     }
   }
 
-  // ============================================================
-  // SELECCIONAR EQUIPO
-  // ============================================================
-
   void _selectTeam(FieldTeam team) {
+    if (_isSaving) {
+      return;
+    }
+
     setState(() {
       _selectedTeamId = team.id;
       _errorMessage = null;
     });
   }
 
-  // ============================================================
-  // CONTINUAR
-  // ============================================================
-
-  void _continue() {
+  Future<void> _continue() async {
     if (_selectedTeamId == null) {
       setState(() {
         _errorMessage =
@@ -136,12 +115,43 @@ class _TeamSelectionPageState
           (team) => team.id == _selectedTeamId,
     );
 
-    widget.onTeamSelected(selectedTeam);
-  }
+    setState(() {
+      _isSaving = true;
+      _errorMessage = null;
+    });
 
-  // ============================================================
-  // BUILD
-  // ============================================================
+    try {
+      await _registrationService
+          .createPlayerEnrollment(
+        playerId: widget.uid,
+        fieldId: widget.fieldId,
+        teamId: selectedTeam.id,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      await widget.onTeamAssigned(
+        selectedTeam,
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isSaving = false;
+        _errorMessage =
+        'No fue posible asignar el equipo. '
+            'Intenta nuevamente.';
+      });
+
+      debugPrint(
+        'Error creando inscripción: $e',
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -150,32 +160,23 @@ class _TeamSelectionPageState
       body: SafeArea(
         child: Stack(
           children: [
-            // ====================================================
-            // FONDO
-            // ====================================================
-
             Positioned.fill(
               child: Image.asset(
                 'assets/images/fondo_bienvenidos.png',
                 fit: BoxFit.cover,
               ),
             ),
-
             Positioned.fill(
               child: Container(
-                color: Colors.black.withValues(alpha:0.78),
+                color: Colors.black.withValues(
+                  alpha: 0.80,
+                ),
               ),
             ),
-
-            // ====================================================
-            // CONTENIDO
-            // ====================================================
-
             SingleChildScrollView(
               physics:
               const BouncingScrollPhysics(),
-              padding:
-              const EdgeInsets.fromLTRB(
+              padding: const EdgeInsets.fromLTRB(
                 25,
                 34,
                 25,
@@ -185,29 +186,27 @@ class _TeamSelectionPageState
                 crossAxisAlignment:
                 CrossAxisAlignment.start,
                 children: [
-                  // ==================================================
-                  // HEADER
-                  // ==================================================
-
                   Row(
                     children: [
                       _BackButton(
                         onPressed: () {
-                          Navigator.pop(context);
+                          if (!_isSaving) {
+                            Navigator.pop(
+                              context,
+                            );
+                          }
                         },
                       ),
-
                       const SizedBox(width: 17),
-
                       const Text(
-                        'REGISTRO DE JUGADOR',
+                        'ASIGNACIÓN DE EQUIPO',
                         style: TextStyle(
                           color:
                           Color(0xFF9DFF21),
                           fontSize: 12,
                           fontWeight:
                           FontWeight.w800,
-                          letterSpacing: 2.2,
+                          letterSpacing: 2.0,
                         ),
                       ),
                     ],
@@ -215,39 +214,18 @@ class _TeamSelectionPageState
 
                   const SizedBox(height: 25),
 
-                  // ==================================================
-                  // CAMPO
-                  // ==================================================
-
-                  _FieldValidatedCard(
-                    fieldName:
-                    widget.accessCode.fieldName,
+                  _FieldCard(
+                    fieldName: widget.fieldName,
                   ),
 
                   const SizedBox(height: 30),
-
-                  // ==================================================
-                  // PROGRESO
-                  // ==================================================
-
-                  const _ProgressIndicator(
-                    currentStep: 5,
-                    totalSteps: 6,
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  // ==================================================
-                  // TITULO
-                  // ==================================================
 
                   const Text(
                     '¿EN QUÉ EQUIPO JUEGAS?',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 29,
-                      fontWeight:
-                      FontWeight.w900,
+                      fontWeight: FontWeight.w900,
                       height: 1.04,
                       letterSpacing: -0.8,
                     ),
@@ -267,10 +245,6 @@ class _TeamSelectionPageState
 
                   const SizedBox(height: 25),
 
-                  // ==================================================
-                  // EQUIPOS
-                  // ==================================================
-
                   if (_isLoading)
                     const Center(
                       child: Padding(
@@ -289,28 +263,22 @@ class _TeamSelectionPageState
                     const _EmptyTeamsCard()
                   else
                     ..._teams.map(
-                          (team) =>
-                          Padding(
-                            padding:
-                            const EdgeInsets.only(
-                              bottom: 12,
-                            ),
-                            child:
-                            _TeamCard(
-                              team: team,
-                              selected:
-                              _selectedTeamId ==
-                                  team.id,
-                              onTap: () {
-                                _selectTeam(team);
-                              },
-                            ),
-                          ),
+                          (team) => Padding(
+                        padding:
+                        const EdgeInsets.only(
+                          bottom: 12,
+                        ),
+                        child: _TeamCard(
+                          team: team,
+                          selected:
+                          _selectedTeamId ==
+                              team.id,
+                          onTap: () {
+                            _selectTeam(team);
+                          },
+                        ),
+                      ),
                     ),
-
-                  // ==================================================
-                  // ERROR
-                  // ==================================================
 
                   if (_errorMessage != null) ...[
                     const SizedBox(height: 8),
@@ -325,9 +293,7 @@ class _TeamSelectionPageState
                           Colors.redAccent,
                           size: 19,
                         ),
-                        const SizedBox(
-                          width: 8,
-                        ),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             _errorMessage!,
@@ -346,16 +312,12 @@ class _TeamSelectionPageState
 
                   const SizedBox(height: 25),
 
-                  // ==================================================
-                  // CONTINUAR
-                  // ==================================================
-
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
                       onPressed:
-                      _isLoading
+                      _isLoading || _isSaving
                           ? null
                           : _continue,
                       style:
@@ -379,7 +341,18 @@ class _TeamSelectionPageState
                           ),
                         ),
                       ),
-                      child: const Text(
+                      child: _isSaving
+                          ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child:
+                        CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color:
+                          Colors.black,
+                        ),
+                      )
+                          : const Text(
                         'CONTINUAR',
                         style: TextStyle(
                           fontSize: 13,
@@ -400,13 +373,8 @@ class _TeamSelectionPageState
   }
 }
 
-// ======================================================================
-// CAMPO VALIDADO
-// ======================================================================
-
-class _FieldValidatedCard
-    extends StatelessWidget {
-  const _FieldValidatedCard({
+class _FieldCard extends StatelessWidget {
+  const _FieldCard({
     required this.fieldName,
   });
 
@@ -448,12 +416,11 @@ class _FieldValidatedCard
               CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'CAMPO VALIDADO',
+                  'CAMPO',
                   style: TextStyle(
                     color: Color(0xFF777777),
                     fontSize: 9,
-                    fontWeight:
-                    FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                     letterSpacing: 1.6,
                   ),
                 ),
@@ -463,8 +430,7 @@ class _FieldValidatedCard
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,
-                    fontWeight:
-                    FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
@@ -476,12 +442,7 @@ class _FieldValidatedCard
   }
 }
 
-// ======================================================================
-// TEAM CARD
-// ======================================================================
-
-class _TeamCard
-    extends StatelessWidget {
+class _TeamCard extends StatelessWidget {
   const _TeamCard({
     required this.team,
     required this.selected,
@@ -538,26 +499,18 @@ class _TeamCard
                   size: 25,
                 ),
               ),
-
               const SizedBox(width: 14),
-
               Expanded(
                 child: Text(
                   team.name,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15,
-                    fontWeight:
-                    FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-
-              AnimatedContainer(
-                duration:
-                const Duration(
-                  milliseconds: 180,
-                ),
+              Container(
                 width: 22,
                 height: 22,
                 decoration: BoxDecoration(
@@ -594,13 +547,10 @@ class _TeamCard
   }
 }
 
-// ======================================================================
-// SIN EQUIPOS
-// ======================================================================
-
 class _EmptyTeamsCard
     extends StatelessWidget {
   const _EmptyTeamsCard();
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -626,15 +576,14 @@ class _EmptyTeamsCard
             'No hay equipos disponibles',
             style: TextStyle(
               color: Colors.white,
-              fontWeight:
-              FontWeight.w700,
+              fontWeight: FontWeight.w700,
               fontSize: 14,
             ),
           ),
           SizedBox(height: 6),
           Text(
             'Este campo todavía no tiene '
-                'equipos disponibles para registro.',
+                'equipos disponibles.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Color(0xFF777777),
@@ -648,67 +597,7 @@ class _EmptyTeamsCard
   }
 }
 
-// ======================================================================
-// PROGRESO
-// ======================================================================
-
-class _ProgressIndicator
-    extends StatelessWidget {
-  const _ProgressIndicator({
-    required this.currentStep,
-    required this.totalSteps,
-  });
-
-  final int currentStep;
-  final int totalSteps;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: List.generate(
-        totalSteps,
-            (index) {
-          final active =
-              index < currentStep;
-
-          return Expanded(
-            child: Container(
-              height: 4,
-              margin:
-              EdgeInsets.only(
-                right: index ==
-                    totalSteps - 1
-                    ? 0
-                    : 5,
-              ),
-              decoration:
-              BoxDecoration(
-                color: active
-                    ? const Color(
-                  0xFF9DFF21,
-                )
-                    : const Color(
-                  0xFF303030,
-                ),
-                borderRadius:
-                BorderRadius.circular(
-                  10,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ======================================================================
-// BOTÓN ATRÁS
-// ======================================================================
-
-class _BackButton
-    extends StatelessWidget {
+class _BackButton extends StatelessWidget {
   const _BackButton({
     required this.onPressed,
   });

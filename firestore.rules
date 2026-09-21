@@ -1,0 +1,194 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // FUNCIONES AUXILIARES
+    // ============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated()
+             && request.auth.uid == userId;
+    }
+
+    // ============================================================
+    // CÓDIGOS DE ACCESO
+    // ============================================================
+
+    match /accessCodes/{accessCodeId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ============================================================
+    // USUARIOS
+    // ============================================================
+
+    match /users/{userId} {
+
+      allow create: if isOwner(userId);
+
+      allow get: if isOwner(userId);
+
+      // TEMPORAL
+      // Se utiliza para comprobar que el WhatsApp
+      // no esté registrado.
+      allow list: if true;
+
+      allow update: if isOwner(userId);
+
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // NOMBRES DE JUGADORES
+    // ============================================================
+
+    match /playerNames/{playerNameId} {
+
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.fullNameNormalized == playerNameId;
+
+      allow update: if false;
+
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // MIEMBROS DE CANCHA
+    // ============================================================
+
+    match /fieldMembers/{memberId} {
+
+      allow read: if isAuthenticated()
+                  && resource.data.userId == request.auth.uid;
+
+      allow create: if isAuthenticated()
+                    && memberId ==
+                       request.resource.data.fieldId + "_"
+                       + request.auth.uid
+                    && request.resource.data.userId ==
+                       request.auth.uid
+                    && request.resource.data.status == 'active'
+                    && request.resource.data.roles is list
+                    && request.resource.data.roles.size() == 1
+                    && request.resource.data.roles[0] == 'player';
+
+      allow update: if false;
+
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // EQUIPOS
+    // ============================================================
+
+    match /teams/{teamId} {
+
+      allow read: if isAuthenticated();
+
+      allow create, update, delete: if false;
+    }
+
+    // ============================================================
+    // PARTIDOS
+    // ============================================================
+    //
+    // HomeService consulta los partidos de la cancha
+    // para mostrar el próximo partido y los últimos partidos.
+    //
+    // Los usuarios autenticados pueden leer partidos.
+    // La aplicación no puede crear, modificar ni eliminar
+    // partidos desde este cliente.
+    //
+
+    match /matches/{matchId} {
+
+      allow read: if isAuthenticated();
+
+      allow create, update, delete: if false;
+    }
+
+    // ============================================================
+    // INSCRIPCIONES DE JUGADORES
+    // ============================================================
+
+    match /playerEnrollments/{enrollmentId} {
+
+      allow read: if isAuthenticated()
+                  && resource.data.playerId == request.auth.uid;
+
+      allow create: if isAuthenticated()
+                    && request.resource.data.playerId ==
+                       request.auth.uid
+                    && enrollmentId ==
+                       request.resource.data.fieldId + "_"
+                       + request.auth.uid + "_"
+                       + request.resource.data.teamId
+                    && request.resource.data.status == 'active';
+
+      allow update: if false;
+
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // MEMBRESÍAS DE EQUIPO
+    // ============================================================
+
+    match /teamMemberships/{membershipId} {
+
+      allow read: if isAuthenticated()
+                  && resource.data.userId == request.auth.uid;
+
+      allow create: if false;
+
+      allow update: if false;
+
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // ADMINISTRADORES DE LIGA
+    // ============================================================
+
+    match /leagueMembers/{memberId} {
+
+      allow read: if isAuthenticated()
+                  && resource.data.userId == request.auth.uid;
+
+      allow create: if false;
+
+      allow update: if false;
+
+      allow delete: if false;
+    }
+
+    // ============================================================
+    // CAMPOS / CANCHAS
+    // ============================================================
+
+    match /fields/{fieldId} {
+
+      allow read: if isAuthenticated();
+
+      allow create, update, delete: if false;
+    }
+
+    // ============================================================
+    // DENEGAR CUALQUIER OTRA COLECCIÓN
+    // ============================================================
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

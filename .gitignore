@@ -1,28 +1,30 @@
 # ==========================================
-# Archivos Sensibles y Seguridad (CRÍTICO)
+# NOVENTA - Seguridad y archivos sensibles
 # ==========================================
-# Configuración y credenciales de Firebase
-android/app/google-services.json
-ios/Runner/GoogleService-Info.plist
-ios/firebase_app_id_file.json
-lib/firebase_options.dart
 
-# Claves de firma, llaves y secretos
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Claves privadas / certificados
 *.keystore
 *.jks
 *.p12
+*.pfx
 *.pem
 *.key
-*.cer
 *.mobileprovision
+*.cer
+
+# Configuración local / credenciales de firma
 key.properties
 local.properties
-.env
-.env.*
 
 # ==========================================
 # Flutter / Dart / Pub
 # ==========================================
+
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -31,8 +33,17 @@ local.properties
 .pub/
 /build/
 /coverage/
+
 **/doc/api/
 **/ios/Flutter/.last_build_id
+
+# ==========================================
+# Flutter generated files
+# ==========================================
+
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
 
 # Símbolos y mapas de ofuscación
 app.*.symbols
@@ -42,27 +53,47 @@ app.*.map.json
 .widget_preview/
 
 # ==========================================
+# Firebase Emulator
+# ==========================================
+
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Datos exportados localmente del Emulator
+firebase_export/
+
+# ==========================================
 # Android
 # ==========================================
+
 /android/app/debug
 /android/app/profile
 /android/app/release
 /android/captures/
+
 /android/.gradle/
 /android/local.properties
+
 **/android/app/key.properties
+**/.gradle/
 
 # ==========================================
 # iOS / macOS
 # ==========================================
+
 /ios/Pods/
 /ios/Frameworks/
 /ios/.symlinks/
+
 /ios/Flutter/App.framework
 /ios/Flutter/Flutter.framework
 /ios/Flutter/Flutter.podspec
+
 /ios/DerivedData/
 /macos/Pods/
+
 *.mode1v3
 *.mode2v3
 *.moved-aside
@@ -70,15 +101,16 @@ app.*.map.json
 *.perspectivev3
 
 # ==========================================
-# Entornos de Desarrollo / IDEs
+# IDEs
 # ==========================================
+
 # IntelliJ / Android Studio
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# VS Code (Se descartan configuraciones locales y temporales)
+# VS Code
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -86,20 +118,31 @@ app.*.map.json
 !.vscode/extensions.json
 
 # ==========================================
-# Sistema Operativo y Varios
+# Sistema operativo
 # ==========================================
+
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
+
 ehthumbs.db
 Thumbs.db
+
+# ==========================================
+# Archivos temporales
+# ==========================================
 
 *.class
 *.log
 *.pyc
 *.swp
+*.tmp
+*.temp
+*.bak
+*.orig
+
 .atom/
 .build/
 .buildlog/
@@ -107,3 +150,11 @@ Thumbs.db
 .svn/
 .swiftpm/
 migrate_working_dir/
+
+# ==========================================
+# Archivos temporales de herramientas
+# ==========================================
+
+*.lock.tmp
+*.pid
+*.pid.lock

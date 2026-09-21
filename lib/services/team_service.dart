@@ -7,10 +7,9 @@ class TeamService {
 
   TeamService({
     FirebaseFirestore? firestore,
-  }) : _firestore =
-      firestore ?? FirebaseFirestore.instance;
+  }) : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  Future<List<Team>> getTeamsByField(
+  Future<List<FieldTeam>> getTeamsByField(
       String fieldId,
       ) async {
     final snapshot = await _firestore
@@ -27,7 +26,7 @@ class TeamService {
 
     return snapshot.docs
         .map(
-          (doc) => Team.fromMap({
+          (doc) => FieldTeam.fromMap({
         ...doc.data(),
         'id': doc.id,
       }),
