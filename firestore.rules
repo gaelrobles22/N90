@@ -72,15 +72,45 @@ service cloud.firestore {
                   && resource.data.userId == request.auth.uid;
 
       allow create: if isAuthenticated()
+
+                    // El ID debe corresponder a la cancha
+                    // y al usuario autenticado.
                     && memberId ==
                        request.resource.data.fieldId + "_"
                        + request.auth.uid
+
+                    // Solamente puede crear su propia membresía.
                     && request.resource.data.userId ==
                        request.auth.uid
+
+                    // La membresía debe quedar activa.
                     && request.resource.data.status == 'active'
+
+                    // El registro inicial solamente puede
+                    // otorgar el rol de jugador.
                     && request.resource.data.roles is list
                     && request.resource.data.roles.size() == 1
-                    && request.resource.data.roles[0] == 'player';
+                    && request.resource.data.roles[0] == 'player'
+
+                    // Debe existir un accessCodeId.
+                    && request.resource.data.accessCodeId is string
+
+                    // El código debe existir.
+                    && exists(
+                         /databases/$(database)/documents/accessCodes/$(request.resource.data.accessCodeId)
+                       )
+
+                    // El código debe estar activo.
+                    && get(
+                         /databases/$(database)/documents/accessCodes/$(request.resource.data.accessCodeId)
+                       ).data.active == true
+
+                    // El código solamente puede asignar
+                    // la cancha que tiene registrada.
+                    && get(
+                         /databases/$(database)/documents/accessCodes/$(request.resource.data.accessCodeId)
+                       ).data.fieldId ==
+                       request.resource.data.fieldId;
 
       allow update: if false;
 
@@ -101,14 +131,13 @@ service cloud.firestore {
     // ============================================================
     // PARTIDOS
     // ============================================================
-    //
+
     // HomeService consulta los partidos de la cancha
     // para mostrar el próximo partido y los últimos partidos.
     //
     // Los usuarios autenticados pueden leer partidos.
     // La aplicación no puede crear, modificar ni eliminar
     // partidos desde este cliente.
-    //
 
     match /matches/{matchId} {
 

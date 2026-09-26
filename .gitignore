@@ -158,3 +158,9 @@ migrate_working_dir/
 *.lock.tmp
 *.pid
 *.pid.lock
+
+# Flutter generated ephemeral files
+**/ephemeral/
+
+# Firebase Android client configuration
+android/app/google-services.json

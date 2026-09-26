@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '/services/auth_service.dart';
 import '/widgets/common.dart';
+import 'forgot_password_page.dart';
 
 class LoginPage extends StatefulWidget {
   final Future<void> Function(
@@ -11,9 +12,15 @@ class LoginPage extends StatefulWidget {
       List<Map<String, dynamic>> fieldMembers,
       ) onLoginSuccess;
 
+  final Future<void> Function(
+      String uid,
+      Map<String, dynamic> userData,
+      ) onFieldAssignmentRequired;
+
   const LoginPage({
     super.key,
     required this.onLoginSuccess,
+    required this.onFieldAssignmentRequired,
   });
 
   @override
@@ -22,8 +29,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final AuthService _authService = AuthService();
-  final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final TextEditingController _emailController =
   TextEditingController();
@@ -33,7 +39,6 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
   bool _obscurePassword = true;
-
   String? _errorMessage;
 
   @override
@@ -44,7 +49,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // ============================================================
-  // LOGIN
+  // INICIAR SESIÓN
   // ============================================================
 
   Future<void> _login() async {
@@ -54,28 +59,19 @@ class _LoginPageState extends State<LoginPage> {
       _errorMessage = null;
     });
 
-    final email =
-    _emailController.text.trim().toLowerCase();
-
-    final password =
-        _passwordController.text;
-
-    // ------------------------------------------------------------
-    // VALIDACIONES
-    // ------------------------------------------------------------
+    final email = _emailController.text.trim().toLowerCase();
+    final password = _passwordController.text;
 
     if (email.isEmpty) {
       setState(() {
-        _errorMessage =
-        'Ingresa tu correo electrónico.';
+        _errorMessage = 'Ingresa tu correo electrónico.';
       });
       return;
     }
 
     if (password.isEmpty) {
       setState(() {
-        _errorMessage =
-        'Ingresa tu contraseña.';
+        _errorMessage = 'Ingresa tu contraseña.';
       });
       return;
     }
@@ -85,150 +81,104 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
+      debugPrint('========================================');
+      debugPrint('NOVENTA - INICIANDO SESIÓN');
+      debugPrint('NOVENTA - EMAIL: $email');
+      debugPrint('========================================');
+
       // ----------------------------------------------------------
-      // FIREBASE AUTH
+      // AUTENTICACIÓN
       // ----------------------------------------------------------
 
-      debugPrint(
-        '========================================',
-      );
-      debugPrint(
-        'NOVENTA - LOGIN PAGE',
-      );
-      debugPrint(
-        'NOVENTA - INICIANDO SESIÓN',
-      );
-      debugPrint(
-        'NOVENTA - EMAIL: $email',
-      );
-      debugPrint(
-        '========================================',
-      );
-
-      final credential = await _authService.signIn(
+      final userCredential = await _authService.signIn(
         email: email,
         password: password,
       );
 
-      final user =
-          credential.user;
+      final user = userCredential.user;
 
       if (user == null) {
         throw Exception(
-          'No fue posible identificar la cuenta.',
+          'No fue posible obtener el usuario autenticado.',
         );
       }
 
       final uid = user.uid;
 
-      debugPrint(
-        'NOVENTA - LOGIN PAGE: AUTH CORRECTO',
-      );
-      debugPrint(
-        'NOVENTA - LOGIN PAGE: UID: $uid',
-      );
+      debugPrint('NOVENTA - UID: $uid');
 
       // ----------------------------------------------------------
-      // OBTENER USUARIO
+      // OBTENER DATOS DEL USUARIO
       // ----------------------------------------------------------
 
-      final userDocument =
-      await _firestore
-          .collection('users')
-          .doc(uid)
-          .get();
+      final userDoc =
+      await _firestore.collection('users').doc(uid).get();
 
-      if (!userDocument.exists) {
-        await _authService.signOut();
-
+      if (!userDoc.exists) {
         throw Exception(
-          'No se encontraron los datos de tu usuario.',
+          'No encontramos la información de tu cuenta.',
         );
       }
 
-      final userData =
-      userDocument.data();
+      final userData = userDoc.data() ?? {};
 
-      if (userData == null) {
-        await _authService.signOut();
-
-        throw Exception(
-          'Los datos de tu usuario están vacíos.',
-        );
-      }
-
-      debugPrint(
-        'NOVENTA - LOGIN PAGE: USER ENCONTRADO',
-      );
-      debugPrint(
-        'NOVENTA - LOGIN PAGE: USER DATA: $userData',
-      );
+      debugPrint('NOVENTA - USUARIO EN FIRESTORE:');
+      debugPrint(userData.toString());
 
       // ----------------------------------------------------------
-      // OBTENER FIELD MEMBERS
+      // OBTENER MEMBRESÍAS ACTIVAS
       // ----------------------------------------------------------
 
-      final membersSnapshot =
-      await _firestore
+      final membersSnapshot = await _firestore
           .collection('fieldMembers')
-          .where(
-        'userId',
-        isEqualTo: uid,
-      )
+          .where('userId', isEqualTo: uid)
+          .where('status', isEqualTo: 'active')
           .get();
 
-      final fieldMembers =
-      membersSnapshot.docs
+      final fieldMembers = membersSnapshot.docs
           .map(
             (doc) => {
-          ...doc.data(),
           'id': doc.id,
+          ...doc.data(),
         },
-      )
-          .where(
-            (member) =>
-        member['status'] == 'active',
       )
           .toList();
 
       debugPrint(
-        'NOVENTA - LOGIN PAGE: FIELD MEMBERS: ${fieldMembers.length}',
+        'NOVENTA - MEMBRESÍAS ACTIVAS: ${fieldMembers.length}',
       );
 
-      if (fieldMembers.isEmpty) {
-        await _authService.signOut();
-
-        throw Exception(
-          'Tu cuenta todavía no tiene una cancha asignada.',
+      for (final member in fieldMembers) {
+        debugPrint(
+          'NOVENTA - FIELD MEMBER: $member',
         );
       }
 
       // ----------------------------------------------------------
-      // MOSTRAR INFORMACIÓN EN LOG
+      // SIN CANCHA ASIGNADA
       // ----------------------------------------------------------
 
-      debugPrint(
-        'NOVENTA - LOGIN PAGE: MEMBERS DATA: $fieldMembers',
-      );
+      if (fieldMembers.isEmpty) {
+        debugPrint(
+          'NOVENTA - USUARIO SIN CANCHA ASIGNADA',
+        );
 
-      debugPrint(
-        'NOVENTA - LOGIN PAGE: LLAMANDO onLoginSuccess',
-      );
+        await widget.onFieldAssignmentRequired(
+          uid,
+          userData,
+        );
+
+        if (!mounted) return;
+
+        Navigator.pop(context);
+        return;
+      }
 
       // ----------------------------------------------------------
-      // IMPORTANTE
-      //
-      // Esperamos a que AppShell termine de:
-      //
-      // 1. identificar el rol
-      // 2. identificar la cancha
-      // 3. buscar el enrollment
-      // 4. identificar el equipo
-      // 5. preparar el Player
-      // 6. cambiar started = true
-      //
-      // Después cerramos LoginPage.
+      // LOGIN EXITOSO
       // ----------------------------------------------------------
+
+      debugPrint('NOVENTA - LOGIN EXITOSO');
 
       await widget.onLoginSuccess(
         uid,
@@ -236,58 +186,35 @@ class _LoginPageState extends State<LoginPage> {
         fieldMembers,
       );
 
-      debugPrint(
-        'NOVENTA - LOGIN PAGE: onLoginSuccess TERMINADO',
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      debugPrint(
-        'NOVENTA - LOGIN PAGE: CERRANDO LOGIN',
-      );
-
-      // ----------------------------------------------------------
-      // REGRESAR A APPSHELL
-      // ----------------------------------------------------------
+      if (!mounted) return;
 
       Navigator.pop(context);
-
     } on FirebaseException catch (e) {
       debugPrint(
-        'NOVENTA - LOGIN PAGE: FIREBASE ERROR',
+        'NOVENTA - ERROR FIREBASE LOGIN',
       );
       debugPrint(
-        'NOVENTA - LOGIN PAGE: CODE: ${e.code}',
+        'NOVENTA - CODE: ${e.code}',
       );
       debugPrint(
-        'NOVENTA - LOGIN PAGE: MESSAGE: ${e.message}',
+        'NOVENTA - MESSAGE: ${e.message}',
       );
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
-        _errorMessage =
-            _firebaseErrorMessage(e);
+        _errorMessage = _firebaseErrorMessage(e);
       });
-
     } catch (e) {
       debugPrint(
-        'NOVENTA - LOGIN PAGE: ERROR: $e',
+        'NOVENTA - ERROR LOGIN: $e',
       );
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
-        _errorMessage =
-            _cleanErrorMessage(e);
+        _errorMessage = _cleanErrorMessage(e);
       });
-
     } finally {
       if (mounted) {
         setState(() {
@@ -298,17 +225,103 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // ============================================================
-  // MENSAJES FIREBASE
+  // RECUPERAR CONTRASEÑA
   // ============================================================
 
-  String _firebaseErrorMessage(
-      FirebaseException e,
-      ) {
+  Future<void> _forgotPassword() async {
+    FocusScope.of(context).unfocus();
+
+    final email = _emailController.text.trim().toLowerCase();
+
+    if (email.isEmpty) {
+      setState(() {
+        _errorMessage =
+        'Ingresa tu correo electrónico para recuperar tu contraseña.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      debugPrint(
+        '========================================',
+      );
+      debugPrint(
+        'NOVENTA - RECUPERACIÓN DE CONTRASEÑA',
+      );
+      debugPrint(
+        'NOVENTA - EMAIL: $email',
+      );
+      debugPrint(
+        '========================================',
+      );
+
+      await _authService.sendPasswordResetEmail(
+        email: email,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.',
+          ),
+        ),
+      );
+    } on FirebaseException catch (e) {
+      debugPrint(
+        'NOVENTA - ERROR RECUPERANDO CONTRASEÑA',
+      );
+      debugPrint(
+        'NOVENTA - CODE: ${e.code}',
+      );
+      debugPrint(
+        'NOVENTA - MESSAGE: ${e.message}',
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = _firebaseErrorMessage(e);
+      });
+    } catch (e) {
+      debugPrint(
+        'NOVENTA - ERROR RECUPERANDO CONTRASEÑA: $e',
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = _cleanErrorMessage(e);
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // ============================================================
+  // MENSAJES DE FIREBASE
+  // ============================================================
+
+  String _firebaseErrorMessage(FirebaseException e) {
     switch (e.code) {
-      case 'invalid-credential':
-      case 'wrong-password':
       case 'user-not-found':
-        return 'Correo o contraseña incorrectos.';
+        return 'No existe una cuenta con este correo electrónico.';
+
+      case 'wrong-password':
+        return 'La contraseña es incorrecta.';
+
+      case 'invalid-credential':
+        return 'El correo o la contraseña son incorrectos.';
 
       case 'invalid-email':
         return 'El correo electrónico no es válido.';
@@ -322,30 +335,26 @@ class _LoginPageState extends State<LoginPage> {
       case 'network-request-failed':
         return 'No hay conexión con Firebase.';
 
+      case 'operation-not-allowed':
+        return 'Esta operación no está habilitada.';
+
       default:
-        return e.message ??
-            'No fue posible iniciar sesión.';
+        return e.message ?? 'Ocurrió un error. Intenta nuevamente.';
     }
   }
 
-  String _cleanErrorMessage(
-      Object error,
-      ) {
-    final message =
-    error.toString();
+  String _cleanErrorMessage(Object error) {
+    final message = error.toString();
 
-    if (message.startsWith(
-        'Exception: ')) {
-      return message.substring(
-        'Exception: '.length,
-      );
+    if (message.startsWith('Exception: ')) {
+      return message.substring('Exception: '.length);
     }
 
     return message;
   }
 
   // ============================================================
-  // INPUT
+  // INPUT DECORATION
   // ============================================================
 
   InputDecoration _inputDecoration({
@@ -355,59 +364,54 @@ class _LoginPageState extends State<LoginPage> {
   }) {
     return InputDecoration(
       labelText: label,
+      labelStyle: const TextStyle(
+        color: Colors.white54,
+      ),
       prefixIcon: Icon(
         icon,
         color: Colors.white54,
       ),
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor: Colors.white.withValues(
-        alpha: 0.05,
-      ),
+      fillColor: Colors.white.withValues(alpha: 0.05),
       border: OutlineInputBorder(
-        borderRadius:
-        BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none,
       ),
-      enabledBorder:
-      OutlineInputBorder(
-        borderRadius:
-        BorderRadius.circular(14),
-        borderSide: BorderSide(
-          color: Colors.white.withValues(
-            alpha: 0.08,
-          ),
-        ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
       ),
-      focusedBorder:
-      OutlineInputBorder(
-        borderRadius:
-        BorderRadius.circular(14),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(
           color: lime,
           width: 1.5,
         ),
       ),
-      labelStyle: const TextStyle(
-        color: Colors.white54,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 17,
       ),
     );
   }
 
   // ============================================================
-  // BUILD
+  // UI
   // ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Colors.black,
+
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_new,
+            color: Colors.white,
           ),
           onPressed: _isLoading
               ? null
@@ -416,269 +420,252 @@ class _LoginPageState extends State<LoginPage> {
           },
         ),
         title: const Text(
-          'Iniciar sesión',
+          'Regresar',
           style: TextStyle(
             fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding:
-          const EdgeInsets.fromLTRB(
-            24,
-            20,
-            24,
-            30,
+
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // ------------------------------------------------------
+          // FONDO
+          // ------------------------------------------------------
+
+          Image.asset(
+            'assets/images/fondo_bienvenidos.png',
+            fit: BoxFit.cover,
           ),
-          child: Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 20),
 
-              // --------------------------------------------------
-              // LOGO / TITULO
-              // --------------------------------------------------
+          Container(
+            color: Colors.black.withValues(alpha: 0.72),
+          ),
 
-              const Text(
-                'NOVENTA',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 38,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
-                  color: lime,
-                ),
+          // ------------------------------------------------------
+          // CONTENIDO
+          // ------------------------------------------------------
+
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                24,
+                20,
+                24,
+                30,
               ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 20),
 
-              const SizedBox(height: 8),
+                  // ------------------------------------------------
+                  // LOGO
+                  // ------------------------------------------------
 
-              const Text(
-                'Bienvenido de nuevo',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.white70,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+                  Image.asset(
+                    'assets/images/logo_noventa.png',
+                    height: 70,
+                    fit: BoxFit.contain,
+                  ),
 
-              const SizedBox(height: 40),
+                  const SizedBox(height: 8),
 
-              // --------------------------------------------------
-              // CORREO
-              // --------------------------------------------------
+                  // ------------------------------------------------
+                  // TÍTULO
+                  // ------------------------------------------------
 
-              TextField(
-                controller:
-                _emailController,
-                enabled: !_isLoading,
-                keyboardType:
-                TextInputType.emailAddress,
-                textInputAction:
-                TextInputAction.next,
-                autocorrect: false,
-                decoration:
-                _inputDecoration(
-                  label: 'Correo electrónico',
-                  icon: Icons.email_outlined,
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // --------------------------------------------------
-              // PASSWORD
-              // --------------------------------------------------
-
-              TextField(
-                controller:
-                _passwordController,
-                enabled: !_isLoading,
-                obscureText:
-                _obscurePassword,
-                textInputAction:
-                TextInputAction.done,
-                onSubmitted: (_) {
-                  if (!_isLoading) {
-                    _login();
-                  }
-                },
-                decoration:
-                _inputDecoration(
-                  label: 'Contraseña',
-                  icon:
-                  Icons.lock_outline,
-                  suffixIcon:
-                  IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons
-                          .visibility_outlined
-                          : Icons
-                          .visibility_off_outlined,
-                      color:
-                      Colors.white54,
+                  const Text(
+                    'Iniciar sesión',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 30,
+                      color: Colors.white,
                     ),
-                    onPressed:
-                    _isLoading
-                        ? null
-                        : () {
-                      setState(() {
-                        _obscurePassword =
-                        !_obscurePassword;
-                      });
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // ------------------------------------------------
+                  // CORREO
+                  // ------------------------------------------------
+
+                  TextField(
+                    controller: _emailController,
+                    enabled: !_isLoading,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    autocorrect: false,
+                    decoration: _inputDecoration(
+                      label: 'Correo electrónico',
+                      icon: Icons.email_outlined,
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // ------------------------------------------------
+                  // CONTRASEÑA
+                  // ------------------------------------------------
+
+                  TextField(
+                    controller: _passwordController,
+                    enabled: !_isLoading,
+                    obscureText: _obscurePassword,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) {
+                      if (!_isLoading) {
+                        _login();
+                      }
                     },
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // --------------------------------------------------
-              // ERROR
-              // --------------------------------------------------
-
-              if (_errorMessage != null)
-                Container(
-                  width:
-                  double.infinity,
-                  margin:
-                  const EdgeInsets.only(
-                    bottom: 18,
-                  ),
-                  padding:
-                  const EdgeInsets.all(
-                    14,
-                  ),
-                  decoration:
-                  BoxDecoration(
-                    color: Colors.red
-                        .withValues(
-                      alpha: 0.10,
-                    ),
-                    borderRadius:
-                    BorderRadius.circular(
-                      12,
-                    ),
-                    border:
-                    Border.all(
-                      color: Colors.red
-                          .withValues(
-                        alpha: 0.35,
+                    decoration: _inputDecoration(
+                      label: 'Contraseña',
+                      icon: Icons.lock_outline,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: Colors.white54,
+                        ),
+                        onPressed: _isLoading
+                            ? null
+                            : () {
+                          setState(() {
+                            _obscurePassword =
+                            !_obscurePassword;
+                          });
+                        },
                       ),
                     ),
                   ),
-                  child: Row(
-                    crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
-                    children: [
-                      const Icon(
-                        Icons
-                            .error_outline,
-                        color: Colors.redAccent,
+
+                  // ------------------------------------------------
+                  // OLVIDÉ MI CONTRASEÑA
+                  // ------------------------------------------------
+
+                  const SizedBox(height: 8),
+
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordPage(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        '¿Olvidaste tu contraseña?',
+                        style: TextStyle(
+                          color: lime,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      const SizedBox(
-                        width: 10,
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // ------------------------------------------------
+                  // ERROR
+                  // ------------------------------------------------
+
+                  if (_errorMessage != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
                       ),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style:
-                          const TextStyle(
-                            color:
-                            Colors.white70,
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(
+                          alpha: 0.12,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.red.withValues(
+                            alpha: 0.35,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-
-              // --------------------------------------------------
-              // BOTÓN LOGIN
-              // --------------------------------------------------
-
-              SizedBox(
-                height: 54,
-                child: ElevatedButton(
-                  onPressed:
-                  _isLoading
-                      ? null
-                      : _login,
-                  style:
-                  ElevatedButton
-                      .styleFrom(
-                    backgroundColor:
-                    lime,
-                    foregroundColor:
-                    Colors.black,
-                    disabledBackgroundColor:
-                    lime.withValues(
-                      alpha: 0.35,
+                      child: Row(
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    disabledForegroundColor:
-                    Colors.black54,
-                    shape:
-                    RoundedRectangleBorder(
-                      borderRadius:
-                      BorderRadius
-                          .circular(
-                        14,
+                    const SizedBox(height: 20),
+                  ],
+
+                  // ------------------------------------------------
+                  // BOTÓN INICIAR SESIÓN
+                  // ------------------------------------------------
+
+                  SizedBox(
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: lime,
+                        foregroundColor: Colors.black,
+                        disabledBackgroundColor:
+                        lime.withValues(alpha: 0.45),
+                        disabledForegroundColor:
+                        Colors.black54,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                          BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child:
+                        CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.black,
+                        ),
+                      )
+                          : const Text(
+                        'Iniciar sesión',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child:
-                    CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color:
-                      Colors.black,
-                    ),
-                  )
-                      : const Text(
-                    'Iniciar sesión',
-                    style:
-                    TextStyle(
-                      fontSize: 16,
-                      fontWeight:
-                      FontWeight
-                          .w800,
-                    ),
-                  ),
-                ),
+                ],
               ),
-
-              const SizedBox(height: 24),
-
-              // --------------------------------------------------
-              // REGRESAR
-              // --------------------------------------------------
-
-              TextButton(
-                onPressed:
-                _isLoading
-                    ? null
-                    : () {
-                  Navigator.pop(
-                    context,
-                  );
-                },
-                child: const Text(
-                  'Regresar',
-                  style: TextStyle(
-                    color: Colors.white60,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

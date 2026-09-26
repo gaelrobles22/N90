@@ -61,7 +61,7 @@ class ProfileSelectionPage extends StatelessWidget {
                     'SELECCIÓN DE ACCESO',
                     style: TextStyle(
                       color: _limeColor,
-                      fontSize: 10,
+                      fontSize: 14,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.8,
                     ),
@@ -70,7 +70,7 @@ class ProfileSelectionPage extends StatelessWidget {
                   const SizedBox(height: 28),
 
                   const Text(
-                    '¿CÓMO QUIERES\nENTRAR?',
+                    '¿CÓMO DESEAS\nCOMENZAR?',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 23,
@@ -82,15 +82,15 @@ class ProfileSelectionPage extends StatelessWidget {
                   const SizedBox(height: 10),
 
                   const Text(
-                    'Regístrate, inicia sesión o consulta NOVENTA como invitado.',
+                    'Regístrate, inicia sesión o ingresa como invitado.',
                     style: TextStyle(
                       color: Colors.white60,
-                      fontSize: 12,
+                      fontSize: 14,
                       height: 1.35,
                     ),
                   ),
 
-                  const SizedBox(height: 25),
+                  const SizedBox(height: 30),
 
                   _AccessCard(
                     icon: Icons.person_add_alt_1_outlined,
@@ -116,22 +116,7 @@ class ProfileSelectionPage extends StatelessWidget {
                     },
                   ),
 
-                  const SizedBox(height: 12),
-
-                  _AccessCard(
-                    icon: Icons.visibility_outlined,
-                    title: 'Entrar como invitado',
-                    description:
-                    'Consulta una cancha, resultados, equipos, jugadores y estadísticas.',
-                    image: 'assets/images/liga.png',
-                    onTap: () {
-                      onProfileSelected(
-                        ProfileType.guest,
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
 
                   _AccessCard(
                     icon: Icons.login_outlined,
@@ -146,22 +131,19 @@ class ProfileSelectionPage extends StatelessWidget {
                     },
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
-                  Center(
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text(
-                        'Volver',
-                        style: TextStyle(
-                          color: Colors.white54,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                  _AccessCard(
+                    icon: Icons.visibility_outlined,
+                    title: 'Entrar como invitado',
+                    description:
+                    'Consulta una cancha, resultados, equipos, jugadores y estadísticas.',
+                    image: 'assets/images/liga.png',
+                    onTap: () {
+                      onProfileSelected(
+                        ProfileType.guest,
+                      );
+                    },
                   ),
                 ],
               ),
@@ -226,7 +208,7 @@ class _AccessCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 94,
+        height: 120, //Altura de contenedores de perfil
         width: double.infinity,
         decoration: BoxDecoration(
           color: const Color(0xFF171718),
@@ -239,13 +221,13 @@ class _AccessCard extends StatelessWidget {
         child: Stack(
           children: [
             Positioned(
-              right: -4,
-              top: 0,
-              bottom: 0,
-              width: 125,
+              right: -18,
+              top: 12,
+              bottom: -4,
+              width: 140,
               child: Image.asset(
                 image,
-                fit: BoxFit.contain,
+                fit: BoxFit.cover,
                 alignment: Alignment.centerRight,
                 errorBuilder: (_, __, ___) {
                   return const SizedBox.shrink();
@@ -286,8 +268,8 @@ class _AccessCard extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    width: 38,
-                    height: 38,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
@@ -298,7 +280,7 @@ class _AccessCard extends StatelessWidget {
                     child: Icon(
                       icon,
                       color: Colors.white,
-                      size: 20,
+                      size: 25,
                     ),
                   ),
 
@@ -317,7 +299,7 @@ class _AccessCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 13,
+                            fontSize: 16,
                             height: 1.05,
                             fontWeight: FontWeight.w800,
                           ),
@@ -330,8 +312,8 @@ class _AccessCard extends StatelessWidget {
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: Colors.white60,
-                            fontSize: 9,
+                            color: Colors.white70,
+                            fontSize: 12,
                             height: 1.25,
                           ),
                         ),
@@ -343,22 +325,22 @@ class _AccessCard extends StatelessWidget {
             ),
 
             Positioned(
-              right: 12,
-              bottom: 12,
+              right: 9,
+              bottom: 9,
               child: Container(
                 width: 22,
                 height: 22,
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.45),
+                  color: Colors.black.withValues(alpha: 0.70),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.16),
+                    color: Colors.white.withValues(alpha: 0.60),
                   ),
                 ),
                 child: const Icon(
                   Icons.arrow_forward_ios,
                   color: _limeColor,
-                  size: 10,
+                  size: 16,
                 ),
               ),
             ),

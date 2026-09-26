@@ -4,11 +4,9 @@ class WelcomePage extends StatelessWidget {
   const WelcomePage({
     super.key,
     required this.onStart,
-    required this.onLogin,
   });
 
   final VoidCallback onStart;
-  final VoidCallback onLogin;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +19,6 @@ class WelcomePage extends StatelessWidget {
             // ============================================================
             // FONDO
             // ============================================================
-
             Positioned.fill(
               child: Image.asset(
                 'assets/images/fondo_bienvenidos.png',
@@ -33,7 +30,6 @@ class WelcomePage extends StatelessWidget {
             // ============================================================
             // DEGRADADO OSCURO
             // ============================================================
-
             Positioned.fill(
               child: Container(
                 decoration: const BoxDecoration(
@@ -60,14 +56,12 @@ class WelcomePage extends StatelessWidget {
             // ============================================================
             // CONTENIDO
             // ============================================================
-
             Positioned.fill(
               child: Column(
                 children: [
-                  // ======================================================
+                  // ------------------------------------------------------
                   // LOGO
-                  // ======================================================
-
+                  // ------------------------------------------------------
                   Expanded(
                     child: Center(
                       child: Image.asset(
@@ -78,10 +72,9 @@ class WelcomePage extends StatelessWidget {
                     ),
                   ),
 
-                  // ======================================================
-                  // BOTONES
-                  // ======================================================
-
+                  // ------------------------------------------------------
+                  // BOTÓN COMENZAR
+                  // ------------------------------------------------------
                   Padding(
                     padding: const EdgeInsets.fromLTRB(
                       44,
@@ -93,12 +86,6 @@ class WelcomePage extends StatelessWidget {
                       children: [
                         _StartButton(
                           onPressed: onStart,
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        _LoginButton(
-                          onPressed: onLogin,
                         ),
                       ],
                     ),
@@ -113,9 +100,9 @@ class WelcomePage extends StatelessWidget {
   }
 }
 
-// ============================================================================
+// ==========================================================================
 // BOTÓN COMENZAR
-// ============================================================================
+// ==========================================================================
 
 class _StartButton extends StatelessWidget {
   const _StartButton({
@@ -124,101 +111,30 @@ class _StartButton extends StatelessWidget {
 
   final VoidCallback onPressed;
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        height: 65,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: const Color(0xFF9DFF21),
-          borderRadius: BorderRadius.circular(48),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF9DFF21).withValues(alpha:0.45),
-              blurRadius: 25,
-              spreadRadius: 2,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.only(
-            left: 35,
-            right: 10,
-          ),
-          child: Row(
-            children: [
-              const Expanded(
-                child: Center(
-                  child: Text(
-                    'COMENZAR',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 4.2,
-                    ),
-                  ),
-                ),
-              ),
-
-              Container(
-                width: 30,
-                height: 30,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF8CE91B),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.arrow_forward_rounded,
-                  color: Colors.black,
-                  size: 20,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================================
-// BOTÓN LOGIN
-// ============================================================================
-
-class _LoginButton extends StatelessWidget {
-  const _LoginButton({
-    required this.onPressed,
-  });
-
-  final VoidCallback onPressed;
+  static const Color _limeColor = Color(0xFF9DFF21);
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        height: 65,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: const Color(0xFF171817),
-          borderRadius: BorderRadius.circular(40),
-          border: Border.all(
-            color: const Color(0xFF383938),
-            width: 1,
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _limeColor,
+          foregroundColor: Colors.black,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
         child: const Center(
           child: Text(
-            'YA TENGO UNA CUENTA',
+            'COMENZAR',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 3.2,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
             ),
           ),
         ),

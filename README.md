@@ -1,67 +1,29 @@
-# Noventa Pro ⚽
+# N90 ⚽
 
-Aplicación Flutter para la administración y consulta de una liga/sede de fútbol.
+Aplicación móvil para la administración y operación de sedes, equipos, jugadores, árbitros y ligas de fútbol.
 
-El proyecto utiliza **Flutter + Firebase + Cloud Firestore** y actualmente cuenta con una interfaz inicial para jugadores, rankings, partidos y administración de sede.
-
----
-
-
-flutter clean
-flutter pub get
-flutter run
-flutter analyze
-
-## 📌 Estado actual
-
-### Completado
-
-* [x] Proyecto Flutter funcionando.
-* [x] Firebase configurado.
-* [x] `firebase_options.dart` configurado.
-* [x] `firebase_core` integrado.
-* [x] `cloud_firestore` integrado.
-* [x] `DataService` creado para trabajar con Firestore.
-* [x] Interfaz inicial de Noventa Pro.
-* [x] Navegación inferior:
-
-    * Inicio
-    * Rankings
-    * Partidos
-    * Sede / Admin
-* [x] Diseño oscuro.
-* [x] Aplicación ejecutando correctamente.
-
-### Pendiente
-
-Actualmente varias pantallas todavía utilizan datos estáticos.
-
-Ejemplos:
-
-* Alex Mendoza
-* Titanes FC
-* Real Baja
-* Galácticos SC
-* Resultados de partidos
-* Posiciones
-* Goleadores
-* Nombre de la sede
-
-El siguiente objetivo es sustituir estos datos por información real almacenada en **Cloud Firestore**.
-
----
-
-# 🚀 Ejecución del proyecto
-
-## Requisitos
-
-Se necesita tener instalado:
+El proyecto está desarrollado con:
 
 * Flutter
 * Dart
-* Android Studio / Android SDK para Android
-* Git
-* Firebase configurado
+* Firebase
+* Firebase Authentication
+* Cloud Firestore
+
+---
+
+# 📋 Requisitos
+
+Antes de comenzar, instalar las siguientes herramientas:
+
+| Herramienta    | Versión / Requisito                               |
+| -------------- | ------------------------------------------------- |
+| Flutter        | 3.47.4                                            |
+| Dart           | 3.13.3                                            |
+| Android Studio | Recomendado                                       |
+| Android SDK    | 36 o compatible                                   |
+| Git            | Requerido                                         |
+| JDK            | Compatible con la configuración de Android/Gradle |
 
 Verificar Flutter:
 
@@ -75,660 +37,576 @@ Verificar Dart:
 dart --version
 ```
 
-Ver dispositivos disponibles:
+Verificar la configuración general:
 
 ```powershell
-flutter devices
+flutter doctor
 ```
+
+El objetivo es que no existan errores críticos relacionados con Flutter, Android SDK o las herramientas necesarias para ejecutar la aplicación.
 
 ---
 
-# 📂 Ubicación del proyecto
+# 📥 Instalación del proyecto
 
-Actualmente el proyecto se encuentra en:
+## 1. Clonar el repositorio
 
-```text
-E:\Proyecto N90\N90\flutter_code
+Desde una terminal:
+
+```powershell
+git clone <URL_DEL_REPOSITORIO>
 ```
 
 Entrar al proyecto:
 
 ```powershell
-cd "E:\Proyecto N90\N90\flutter_code"
+cd <CARPETA_DEL_PROYECTO>
 ```
 
 ---
 
-# 📦 Instalar dependencias
+# 📦 2. Instalar dependencias
 
-Después de entrar al proyecto:
+Ejecutar:
 
 ```powershell
 flutter pub get
 ```
 
----
-
-# ▶️ Ejecutar la aplicación
-
-Ejecutar:
-
-```powershell
-flutter run
-```
-
-Para ver los dispositivos disponibles:
-
-```powershell
-flutter devices
-```
-
-También se puede ejecutar especificando un dispositivo:
-
-```powershell
-flutter run -d <DEVICE_ID>
-```
+Este comando descarga todas las dependencias definidas en `pubspec.yaml`.
 
 ---
 
-# 🔥 Firebase
+# 🔥 3. Configuración de Firebase
 
-El proyecto utiliza Firebase para almacenar los datos de la aplicación.
+NOVENTA utiliza Firebase para autenticación y almacenamiento de información.
 
-Firebase se inicializa en:
-
-```text
-lib/main.dart
-```
-
-mediante:
-
-```
-await Firebase.initializeApp(
-  options: DefaultFirebaseOptions.currentPlatform,
-);
-```
-
-La configuración de Firebase se encuentra en:
+La configuración general del proyecto Firebase se encuentra en:
 
 ```text
 lib/firebase_options.dart
 ```
 
-No eliminar este archivo si se desea mantener la configuración actual de Firebase.
+## Configuración de Android
+
+Para ejecutar NOVENTA en Android se necesita el archivo:
+
+```text
+android/app/google-services.json
+```
+
+Este archivo debe ser proporcionado directamente por el responsable del proyecto.
+
+Después de recibirlo, colocarlo exactamente en:
+
+```text
+android/app/google-services.json
+```
+
+La estructura debe quedar:
+
+```text
+NOVENTA/
+└── android/
+    └── app/
+        └── google-services.json
+```
+
+No cambiar el nombre ni la ubicación del archivo.
 
 ---
 
-# 🗄️ Cloud Firestore
+# 🗄️ 4. Cloud Firestore
 
-El proyecto utiliza:
+NOVENTA utiliza Cloud Firestore como base de datos.
 
-```dart
-import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
-```
-
-La comunicación con Firestore se centraliza principalmente en:
+La configuración de Firestore del proyecto incluye:
 
 ```text
-lib/services/data_service.dart
+firestore.rules
+firestore.indexes.json
 ```
 
-Para revisar los datos almacenados:
+Las reglas de seguridad se encuentran en:
 
 ```text
-Firebase Console
-    ↓
-Proyecto Noventa Pro
-    ↓
-Build
-    ↓
-Firestore Database
-    ↓
-Data
+firestore.rules
 ```
 
-La región de Firebase no impide utilizar Firestore desde México. Lo importante es que la aplicación esté configurada con el proyecto Firebase correcto y que las reglas de Firestore permitan las operaciones necesarias.
+Los índices se encuentran en:
+
+```text
+firestore.indexes.json
+```
+
+Las operaciones de datos de la aplicación se centralizan principalmente mediante los servicios ubicados en:
+
+```text
+lib/services/
+```
+
+Antes de modificar colecciones o crear nuevas estructuras en Firestore, revisar primero los servicios y modelos existentes.
 
 ---
 
-# 📁 Estructura del proyecto
+# ▶️ 5. Ejecutar NOVENTA
+
+Ver los dispositivos disponibles:
+
+```powershell
+flutter devices
+```
+
+Ejecutar la aplicación:
+
+```powershell
+flutter run
+```
+
+Para ejecutar en un dispositivo específico:
+
+```powershell
+flutter run -d <DEVICE_ID>
+```
+
+Por ejemplo:
+
+```powershell
+flutter run -d emulator-5554
+```
+
+---
+
+# 🧹 6. Limpieza del proyecto
+
+Si existen problemas relacionados con compilación o dependencias, ejecutar:
+
+```powershell
+flutter clean
+```
+
+Después:
+
+```powershell
+flutter pub get
+```
+
+Y finalmente:
+
+```powershell
+flutter run
+```
+
+---
+
+# 🔍 7. Validación del código
+
+Antes de realizar un commit, ejecutar:
+
+```powershell
+flutter analyze
+```
+
+Los errores reportados como:
 
 ```text
-flutter_code/
+error
+```
+
+deben corregirse.
+
+Los mensajes informativos o recomendaciones del analizador no necesariamente impiden ejecutar la aplicación.
+
+---
+
+# 📁 Estructura principal
+
+```text
+NOVENTA/
 │
 ├── android/
 ├── ios/
+├── linux/
+├── macos/
+├── web/
+├── windows/
+│
+├── assets/
+│   └── images/
 │
 ├── lib/
 │   ├── main.dart
 │   ├── firebase_options.dart
 │   │
 │   ├── models/
-│   │   └── app_models.dart
 │   │
-│   └── services/
-│       └── data_service.dart
+│   ├── screens/
+│   │
+│   ├── services/
+│   │
+│   └── widgets/
 │
+├── firestore.indexes.json
+├── firestore.rules
+├── firebase.json
+├── .firebaserc
 ├── pubspec.yaml
+├── pubspec.lock
 └── README.md
 ```
 
 ---
 
-# 🧩 Componentes principales
+# 🧩 Arquitectura general
 
-## `main.dart`
-
-Actualmente contiene la aplicación y las pantallas principales:
+La aplicación está organizada principalmente de la siguiente manera:
 
 ```text
-PlayerHomeScreen
-RankingsScreen
-MatchesScreen
-AdminDashboardScreen
+Pantallas
+    ↓
+Servicios
+    ↓
+Firebase / Firestore
 ```
 
-También contiene la navegación inferior.
-
----
-
-## `app_models.dart`
+Los modelos representan las entidades utilizadas por la aplicación.
 
 Ubicación:
 
 ```text
-lib/models/app_models.dart
+lib/models/
 ```
 
-Aquí se encuentran los modelos que representan las entidades de la aplicación.
-
-Entre ellas se contemplan conceptos como:
-
-```text
-Field
-Team
-Player
-Match
-```
-
-Antes de modificar la estructura de Firestore se debe revisar este archivo.
-
----
-
-## `data_service.dart`
+Los servicios contienen la lógica de acceso y operaciones con datos.
 
 Ubicación:
 
 ```text
-lib/services/data_service.dart
+lib/services/
 ```
 
-Este servicio será responsable de centralizar las operaciones con Firestore.
-
-La intención es manejar desde aquí operaciones como:
+Las pantallas se encuentran en:
 
 ```text
-Obtener sede
-Obtener equipos
-Crear equipo
-Obtener jugadores
-Obtener partidos
-Obtener rankings
-Actualizar información
+lib/screens/
+```
+
+Los componentes reutilizables se encuentran en:
+
+```text
+lib/widgets/
 ```
 
 ---
 
-# 🗄️ Estructura propuesta de Firestore
+# 🔐 Firebase Authentication
 
-Una estructura inicial podría ser:
+NOVENTA utiliza Firebase Authentication para la gestión de usuarios.
+
+El flujo de autenticación se encuentra principalmente en:
 
 ```text
-fields
- └── field-1
-      ├── name
-      ├── logoUrl
-      └── ...
+lib/services/auth_service.dart
+```
 
+Las pantallas relacionadas con autenticación se encuentran en:
+
+```text
+lib/screens/login/
+```
+
+y:
+
+```text
+lib/screens/registration/
+```
+
+---
+
+# 👤 Roles de usuario
+
+NOVENTA contempla diferentes roles dentro de una sede:
+
+```text
+player
+managerTeam
+referee
+adminField
+```
+
+Los permisos y la navegación de la aplicación dependen del rol asignado al usuario.
+
+La información de membresía y roles se gestiona mediante Firebase y Cloud Firestore.
+
+---
+
+# 🗂️ Colecciones principales de Firestore
+
+El proyecto utiliza diferentes colecciones para representar la información de NOVENTA.
+
+Entre ellas:
+
+```text
+users
+fieldMembers
+teamMemberships
 teams
- ├── team-1
- │    ├── name
- │    ├── logoUrl
- │    └── fieldId
- │
- ├── team-2
- │    ├── name
- │    └── fieldId
- │
- └── ...
-
 players
- ├── player-1
- │    ├── name
- │    ├── teamId
- │    ├── number
- │    ├── position
- │    └── goals
- │
- └── ...
-
 matches
- ├── match-1
- │    ├── homeTeamId
- │    ├── awayTeamId
- │    ├── homeScore
- │    ├── awayScore
- │    ├── date
- │    └── status
- │
- └── ...
+events
+standings
+lineups
+leagueMembers
+playerNames
 ```
 
-> Esta estructura es una propuesta. Antes de crear nuevas colecciones o documentos se debe revisar el `DataService` y los modelos existentes para evitar duplicar información.
+Antes de modificar la estructura de cualquiera de estas colecciones:
+
+1. Revisar los modelos existentes.
+2. Revisar los servicios existentes.
+3. Revisar las reglas de Firestore.
+4. Confirmar que el cambio no duplique información existente.
 
 ---
 
-# 🎯 Próximo trabajo
+# 🧑‍💻 Flujo de desarrollo
 
-El siguiente objetivo es dejar de utilizar datos hardcodeados y comenzar a utilizar Firestore.
+El desarrollo debe realizarse mediante ramas independientes.
 
-El orden recomendado es:
+Estructura general:
 
 ```text
-Firestore
-    ↓
-DataService
-    ↓
-Modelos
-    ↓
-AdminDashboardScreen
+prod
+  ↑
+ QA
+  ↑
+feature / fix / refactor
 ```
 
-## 1. Conectar la sede
-
-Actualmente aparece:
+Las funcionalidades nuevas deben desarrollarse en ramas:
 
 ```text
-Complejo Deportivo Reforma
+feat/<nombre>
 ```
 
-como texto estático.
-
-Debe obtenerse desde Firestore.
-
-Objetivo:
+Los errores deben corregirse mediante ramas:
 
 ```text
-Firestore
-    ↓
-DataService
-    ↓
-Field
-    ↓
-AdminDashboardScreen
+fix/<nombre>
+```
+
+Los cambios de arquitectura pueden utilizar:
+
+```text
+refactor/<nombre>
 ```
 
 ---
 
-## 2. Conectar equipos
+# 🔄 Antes de comenzar a trabajar
 
-Actualmente aparecen equipos como:
-
-```text
-Titanes FC
-Real Baja
-Galácticos SC
-```
-
-como datos estáticos.
-
-La siguiente etapa será obtenerlos desde Firestore.
-
----
-
-## 3. Registrar nuevo equipo
-
-El botón:
-
-```text
-Registrar Nuevo Equipo
-```
-
-actualmente no realiza ninguna operación.
-
-Debe convertirse en un flujo que permita:
-
-```text
-Registrar Nuevo Equipo
-        ↓
-Formulario
-        ↓
-Validación
-        ↓
-DataService
-        ↓
-Firestore
-```
-
----
-
-## 4. Conectar jugadores
-
-Después de los equipos:
-
-```text
-Firestore
-    ↓
-Teams
-    ↓
-Players
-```
-
-Los jugadores deberán estar asociados a un equipo mediante `teamId`.
-
----
-
-## 5. Conectar partidos
-
-La pantalla:
-
-```text
-MatchesScreen
-```
-
-deberá dejar de utilizar resultados estáticos.
-
-Los partidos deberán obtenerse desde Firestore.
-
----
-
-## 6. Conectar rankings
-
-Finalmente:
-
-```text
-RankingsScreen
-```
-
-deberá calcular o consultar información real de jugadores y partidos.
-
-Ejemplo:
-
-```text
-Goles
-Partidos jugados
-Victorias
-Derrotas
-Empates
-Puntos
-```
-
----
-
-# 🔍 Validar el proyecto
-
-Después de realizar cambios:
+Actualizar la rama correspondiente:
 
 ```powershell
-flutter analyze
+git pull
 ```
 
-Si no existen errores, ejecutar:
-
-```powershell
-flutter run
-```
-
-Los mensajes de tipo `info`, por ejemplo:
-
-```text
-prefer_const_constructors
-```
-
-son recomendaciones del analizador y no necesariamente impiden ejecutar la aplicación.
-
-Los mensajes de tipo:
-
-```text
-error
-```
-
-sí deben corregirse.
-
----
-
-# 🧹 Comandos útiles
-
-## Limpiar proyecto
-
-```powershell
-flutter clean
-```
-
-## Descargar dependencias
+Después instalar o actualizar dependencias:
 
 ```powershell
 flutter pub get
 ```
 
-## Analizar código
+Validar el proyecto:
 
 ```powershell
 flutter analyze
 ```
 
-## Ejecutar
+Y ejecutar:
 
 ```powershell
 flutter run
 ```
 
-## Ver dispositivos
+---
+
+# 💾 Antes de realizar un commit
+
+Verificar los cambios:
 
 ```powershell
-flutter devices
+git status
+```
+
+Revisar las modificaciones:
+
+```powershell
+git diff
+```
+
+Validar Flutter:
+
+```powershell
+flutter analyze
+```
+
+Probar la aplicación:
+
+```powershell
+flutter run
+```
+
+Después agregar los archivos correspondientes:
+
+```powershell
+git add .
+```
+
+Revisar nuevamente:
+
+```powershell
+git status
+```
+
+Realizar el commit:
+
+```powershell
+git commit -m "tipo: descripción del cambio"
+```
+
+Ejemplos:
+
+```text
+feat: add player registration flow
+fix: correct login navigation
+refactor: update authentication service
 ```
 
 ---
 
-# ⚠️ Problemas comunes
+# 🚀 Instalación rápida
+
+Después de clonar el proyecto:
+
+```powershell
+git clone <URL_DEL_REPOSITORIO>
+cd <CARPETA_DEL_PROYECTO>
+flutter pub get
+```
+
+Solicitar al responsable del proyecto:
+
+```text
+android/app/google-services.json
+```
+
+Colocar el archivo en:
+
+```text
+android/app/google-services.json
+```
+
+Después ejecutar:
+
+```powershell
+flutter doctor
+flutter devices
+flutter analyze
+flutter run
+```
+
+---
+
+# 🛠️ Solución de problemas
+
+## La aplicación no compila
+
+Ejecutar:
+
+```powershell
+flutter clean
+flutter pub get
+flutter run
+```
 
 ## Firebase no inicializa
 
-Verificar que `main.dart` tenga:
-
-```
-WidgetsFlutterBinding.ensureInitialized();
-
-await Firebase.initializeApp(
-  options: DefaultFirebaseOptions.currentPlatform,
-);
-```
-
-antes de:
-
-```
-runApp(...)
-```
-
----
-
-## Firestore no muestra datos
-
-Revisar en Firebase Console:
-
-```
-Firestore Database
-    ↓
-Data
-```
-
-Comprobar:
-
-* Nombre de la colección.
-* ID del documento.
-* Nombre de los campos.
-* Tipo de los campos.
-* Reglas de seguridad.
-* Proyecto Firebase utilizado por la aplicación.
-
----
-
-## Modifiqué Firebase pero la aplicación no cambia
-
-Comprobar que la pantalla realmente esté leyendo Firestore.
-
-Por ejemplo, esto sigue siendo un dato fijo:
-
-```
-const Text('Titanes FC')
-```
-
-Aunque se cambie el nombre en Firebase, ese texto no cambiará.
-
-Debe reemplazarse por un valor proveniente del modelo obtenido mediante `DataService`.
-
----
-
-# 📝 Regla de desarrollo
-
-No conectar todas las pantallas a Firestore al mismo tiempo.
-
-Trabajar progresivamente:
-
-```text
-1. Firebase
-      ↓
-2. DataService
-      ↓
-3. Modelos
-      ↓
-4. Sede
-      ↓
-5. Equipos
-      ↓
-6. Jugadores
-      ↓
-7. Partidos
-      ↓
-8. Rankings
-      ↓
-9. Home del jugador
-```
-
-De esta manera será más sencillo detectar errores y validar cada parte antes de continuar.
-
----
-
-# 🌙 Punto exacto para continuar
-
-### Último estado
-
-Firebase ya está inicializado y la aplicación abre correctamente.
-
-Actualmente existe:
+Verificar:
 
 ```text
 lib/firebase_options.dart
 ```
 
-y:
+Y, para Android:
 
 ```text
-lib/services/data_service.dart
+android/app/google-services.json
 ```
 
-con integración de:
+También verificar que el proyecto Firebase utilizado sea el correspondiente a NOVENTA.
 
-```dart
-cloud_firestore
-```
+## No aparecen datos de Firestore
 
-La aplicación contiene las pantallas:
+Verificar:
 
-```text
-Inicio
-Rankings
-Partidos
-Sede / Admin
-```
+* Proyecto Firebase seleccionado.
+* Colección utilizada.
+* ID del documento.
+* Nombre de los campos.
+* Tipo de los campos.
+* Reglas de Firestore.
+* Usuario autenticado.
+* Permisos correspondientes.
 
-### Siguiente paso
-
-Abrir primero:
-
-```text
-lib/services/data_service.dart
-```
-
-y:
-
-```text
-lib/models/app_models.dart
-```
-
-Revisar las clases y métodos que ya existen.
-
-Después conectar:
-
-```text
-AdminDashboardScreen
-        ↓
-DataService
-        ↓
-Cloud Firestore
-```
-
-La primera prueba debe ser obtener desde Firestore el nombre de la sede.
-
-Actualmente:
-
-```text
-Complejo Deportivo Reforma
-```
-
-está escrito directamente en la interfaz.
-
-La meta es:
-
-```text
-Firestore
-    ↓
-DataService
-    ↓
-Field
-    ↓
-AdminDashboardScreen
-```
-
-Después se continuará con los equipos.
-
-> **No crear nuevas colecciones en Firestore hasta revisar primero el `DataService` y `app_models.dart` actuales.**
-
----
-
-# 📌 Inicio rápido para mañana
-
-Abrir PowerShell:
-
-```powershell
-cd "E:\Proyecto N90\N90\flutter_code"
-```
+## Flutter no encuentra un dispositivo
 
 Ejecutar:
 
 ```powershell
-flutter pub get
-flutter analyze
-flutter run
+flutter devices
 ```
 
-Después revisar:
+Si no aparece el dispositivo Android, verificar que el emulador o dispositivo físico esté iniciado y que Android Debug Bridge esté disponible.
 
-```text
-lib/services/data_service.dart
-lib/models/app_models.dart
-lib/main.dart
-```
+---
 
-Y continuar con la conexión real de Firestore.
+# 📌 Estado del proyecto
+
+NOVENTA se encuentra actualmente en desarrollo.
+
+La aplicación cuenta con:
+
+* Integración con Firebase.
+* Firebase Authentication.
+* Cloud Firestore.
+* Registro de usuarios.
+* Inicio de sesión.
+* Gestión de roles.
+* Gestión de sedes.
+* Gestión de equipos.
+* Flujo de jugadores.
+* Navegación diferenciada según el rol.
+* Estructura para administración de sede.
+
+Las funcionalidades continúan evolucionando y algunas áreas pueden encontrarse en proceso de integración o refactorización.
+
+---
+
+# 📍 Punto de continuación
+
+Antes de implementar una nueva funcionalidad:
+
+1. Revisar `lib/main.dart`.
+2. Revisar los modelos correspondientes en `lib/models/`.
+3. Revisar los servicios en `lib/services/`.
+4. Revisar las pantallas relacionadas.
+5. Revisar las reglas de Firestore cuando el cambio involucre datos o permisos.
+
+No crear nuevas colecciones, modelos o servicios sin comprobar primero si ya existe una implementación para esa funcionalidad.
+
+---
+
+# ⚽ NOVENTA
+
+Flutter · Firebase · Cloud Firestore

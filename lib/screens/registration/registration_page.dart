@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../player_registration/access_code_page.dart';
-import '../profile_selection.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/country_selector.dart';
 
@@ -16,47 +15,31 @@ class RegistrationPage extends StatefulWidget {
   final RegistrationAccess access;
 
   @override
-  State<RegistrationPage> createState() =>
-      _RegistrationPageState();
+  State<RegistrationPage> createState() => _RegistrationPageState();
 }
 
-class _RegistrationPageState
-    extends State<RegistrationPage> {
-  static const Color _limeColor =
-  Color(0xFF9DFF21);
-
-  static const Color _backgroundColor =
-  Color(0xFF0B0B0B);
+class _RegistrationPageState extends State<RegistrationPage> {
+  static const Color _limeColor = Color(0xFF9DFF21);
+  static const Color _backgroundColor = Color(0xFF0B0B0B);
 
   final AuthService _authService = AuthService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance;
+  final TextEditingController _nameController = TextEditingController();
 
-  final TextEditingController _nameController =
+  final TextEditingController _firstLastNameController =
   TextEditingController();
 
-  final TextEditingController
-  _firstLastNameController =
+  final TextEditingController _secondLastNameController =
   TextEditingController();
 
-  final TextEditingController
-  _secondLastNameController =
-  TextEditingController();
+  final TextEditingController _whatsappController = TextEditingController();
 
-  final TextEditingController
-  _whatsappController =
-  TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
 
-  final TextEditingController _emailController =
-  TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-  final TextEditingController
-  _passwordController =
-  TextEditingController();
-
-  final TextEditingController
-  _confirmPasswordController =
+  final TextEditingController _confirmPasswordController =
   TextEditingController();
 
   int _step = 0;
@@ -73,6 +56,10 @@ class _RegistrationPageState
 
   DateTime? _birthDate;
 
+  // Indica que el usuario declaró que NO es el jugador
+  // que ya tiene ese mismo nombre.
+  bool _duplicateNameAcknowledged = false;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -85,6 +72,10 @@ class _RegistrationPageState
 
     super.dispose();
   }
+
+// ============================================================
+// DATOS
+// ============================================================
 
   String get _fullName {
     return [
@@ -101,12 +92,10 @@ class _RegistrationPageState
 
     final today = DateTime.now();
 
-    int age =
-        today.year - _birthDate!.year;
+    int age = today.year - _birthDate!.year;
 
     if (today.month < _birthDate!.month ||
-        (today.month ==
-            _birthDate!.month &&
+        (today.month == _birthDate!.month &&
             today.day < _birthDate!.day)) {
       age--;
     }
@@ -115,9 +104,7 @@ class _RegistrationPageState
   }
 
   String _normalizePhone(String value) {
-    return value
-        .trim()
-        .replaceAll(RegExp(r'[^0-9+]'), '');
+    return value.trim().replaceAll(RegExp(r'[^0-9+]'), '');
   }
 
   String _normalizeName(String value) {
@@ -134,25 +121,26 @@ class _RegistrationPageState
         .replaceAll(RegExp(r'\s+'), ' ');
   }
 
+// ============================================================
+// FECHA DE NACIMIENTO
+// ============================================================
+
   Future<void> _selectBirthDate() async {
     final now = DateTime.now();
 
-    final initialDate =
-        _birthDate ??
-            DateTime(
-              now.year - 18,
-              now.month,
-              now.day,
-            );
+    final initialDate = _birthDate ??
+        DateTime(
+          now.year - 18,
+          now.month,
+          now.day,
+        );
 
-    final selected =
-    await showDatePicker(
+    final selected = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(1940),
       lastDate: now,
-      helpText:
-      'Fecha de nacimiento',
+      helpText: 'Fecha de nacimiento',
       cancelText: 'Cancelar',
       confirmText: 'Aceptar',
       builder: (
@@ -161,12 +149,10 @@ class _RegistrationPageState
           ) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme:
-            const ColorScheme.dark(
+            colorScheme: const ColorScheme.dark(
               primary: _limeColor,
               onPrimary: Colors.black,
-              surface:
-              Color(0xFF181818),
+              surface: Color(0xFF181818),
               onSurface: Colors.white,
             ),
           ),
@@ -190,55 +176,39 @@ class _RegistrationPageState
       return 'Selecciona tu fecha de nacimiento';
     }
 
-    final day =
-    _birthDate!.day
-        .toString()
-        .padLeft(2, '0');
+    final day = _birthDate!.day.toString().padLeft(2, '0');
 
-    final month =
-    _birthDate!.month
-        .toString()
-        .padLeft(2, '0');
+    final month = _birthDate!.month.toString().padLeft(2, '0');
 
     return '$day/$month/${_birthDate!.year}';
   }
 
+// ============================================================
+// VALIDACIONES
+// ============================================================
+
   bool _validatePersonalData() {
-    if (_nameController.text
-        .trim()
-        .isEmpty) {
-      _setError(
-        'Ingresa tu nombre.',
-      );
+    if (_nameController.text.trim().isEmpty) {
+      _setError('Ingresa tu nombre.');
       return false;
     }
 
-    if (_firstLastNameController.text
-        .trim()
-        .isEmpty) {
-      _setError(
-        'Ingresa tu primer apellido.',
-      );
+    if (_firstLastNameController.text.trim().isEmpty) {
+      _setError('Ingresa tu primer apellido.');
       return false;
     }
 
-    if (_selectedCountry == null ||
-        _selectedCountry!.isEmpty) {
-      _setError(
-        'Selecciona tu país.',
-      );
+    if (_selectedCountry == null || _selectedCountry!.isEmpty) {
+      _setError('Selecciona tu país.');
       return false;
     }
 
     if (_birthDate == null) {
-      _setError(
-        'Selecciona tu fecha de nacimiento.',
-      );
+      _setError('Selecciona tu fecha de nacimiento.');
       return false;
     }
 
-    if (_birthDate!
-        .isAfter(DateTime.now())) {
+    if (_birthDate!.isAfter(DateTime.now())) {
       _setError(
         'La fecha de nacimiento no puede ser futura.',
       );
@@ -256,11 +226,9 @@ class _RegistrationPageState
   }
 
   bool _validatePassword() {
-    final password =
-        _passwordController.text;
+    final password = _passwordController.text;
 
-    final confirmPassword =
-        _confirmPasswordController.text;
+    final confirmPassword = _confirmPasswordController.text;
 
     if (password.length < 6) {
       _setError(
@@ -280,15 +248,11 @@ class _RegistrationPageState
   }
 
   bool _validateContact() {
-    final whatsapp =
-    _normalizePhone(
+    final whatsapp = _normalizePhone(
       _whatsappController.text,
     );
 
-    final email =
-    _emailController.text
-        .trim()
-        .toLowerCase();
+    final email = _emailController.text.trim().toLowerCase();
 
     if (whatsapp.isEmpty) {
       _setError(
@@ -334,6 +298,10 @@ class _RegistrationPageState
       _errorMessage = message;
     });
   }
+
+// ============================================================
+// NAVEGACIÓN DE PASOS
+// ============================================================
 
   void _nextStep() {
     FocusScope.of(context).unfocus();
@@ -387,6 +355,10 @@ class _RegistrationPageState
     });
   }
 
+// ============================================================
+// VALIDAR WHATSAPP
+// ============================================================
+
   Future<bool> _phoneAlreadyRegistered(
       String phone,
       ) async {
@@ -402,6 +374,394 @@ class _RegistrationPageState
     return snapshot.docs.isNotEmpty;
   }
 
+// ============================================================
+// VALIDAR NOMBRE
+// ============================================================
+
+  Future<bool> _nameAlreadyRegistered(
+      String fullName,
+      ) async {
+    final normalizedName = _normalizeName(fullName);
+
+    final snapshot = await _firestore
+        .collection('users')
+        .where(
+      'fullNameNormalized',
+      isEqualTo: normalizedName,
+    )
+        .limit(1)
+        .get();
+
+    return snapshot.docs.isNotEmpty;
+  }
+
+// ============================================================
+// DIÁLOGO DE NOMBRE DUPLICADO
+// ============================================================
+
+  Future<bool?> _showDuplicateNameDialog(
+      String fullName,
+      ) async {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF181818),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Este nombre ya está registrado',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Ya existe un jugador registrado con este nombre:',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _limeColor.withValues(
+                    alpha: 0.06,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _limeColor.withValues(
+                      alpha: 0.18,
+                    ),
+                  ),
+                ),
+                child: Text(
+                  fullName,
+                  style: const TextStyle(
+                    color: _limeColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                '¿Eres tú este jugador?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(
+            16,
+            0,
+            16,
+            16,
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () {
+                Navigator.pop(
+                  dialogContext,
+                  false,
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: BorderSide(
+                  color: Colors.white.withValues(
+                    alpha: 0.18,
+                  ),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'NO',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(
+                  dialogContext,
+                  true,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _limeColor,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'SÍ, SOY YO',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+// ============================================================
+// CONFIRMAR QUE ES OTRA PERSONA
+// ============================================================
+
+  Future<bool> _showDifferentPersonDialog() async {
+    bool accepted = false;
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (
+              context,
+              setDialogState,
+              ) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF181818),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Text(
+                'Confirma tu identidad',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'El nombre que estás registrando ya pertenece '
+                        'a otro jugador de NOVENTA.',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  CheckboxListTile(
+                    value: accepted,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        accepted = value ?? false;
+                      });
+                    },
+                    contentPadding: EdgeInsets.zero,
+                    activeColor: _limeColor,
+                    checkColor: Colors.black,
+                    controlAffinity:
+                    ListTileControlAffinity.leading,
+                    title: const Text(
+                      'Declaro que estoy diciendo la verdad y '
+                          'que no soy el jugador que ya está registrado '
+                          'con este nombre.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actionsPadding: const EdgeInsets.fromLTRB(
+                16,
+                0,
+                16,
+                16,
+              ),
+              actions: [
+                OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(
+                      dialogContext,
+                      false,
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(
+                      color: Colors.white.withValues(
+                        alpha: 0.18,
+                      ),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'CANCELAR',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: accepted
+                      ? () {
+                    Navigator.pop(
+                      dialogContext,
+                      true,
+                    );
+                  }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _limeColor,
+                    foregroundColor: Colors.black,
+                    disabledBackgroundColor:
+                    _limeColor.withValues(
+                      alpha: 0.25,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'CONTINUAR',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    return result == true;
+  }
+
+// ============================================================
+// RECUPERAR CONTRASEÑA
+// ============================================================
+
+  Future<void> _sendPasswordRecovery() async {
+    final email = _emailController.text.trim().toLowerCase();
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: email,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF181818),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              'Correo enviado',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            content: Text(
+              'Si la cuenta asociada a $email existe, '
+                  'recibirás un correo para recuperar tu contraseña.',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _limeColor,
+                  foregroundColor: Colors.black,
+                ),
+                child: const Text(
+                  'ACEPTAR',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = _authErrorMessage(e);
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = _cleanErrorMessage(e);
+      });
+    }
+  }
+
+// ============================================================
+// CREAR CUENTA
+// ============================================================
+
   Future<void> _createAccount() async {
     if (!_validateContact()) {
       return;
@@ -415,42 +775,103 @@ class _RegistrationPageState
     String? createdUid;
 
     try {
-      final phone =
-      _normalizePhone(
+      final phone = _normalizePhone(
         _whatsappController.text,
       );
 
-      final email =
-      _emailController.text
-          .trim()
-          .toLowerCase();
+      final email = _emailController.text.trim().toLowerCase();
 
-      final phoneExists =
-      await _phoneAlreadyRegistered(
-        phone,
-      );
+      final fullName = _fullName;
+
+// ----------------------------------------------------------
+// VALIDAR WHATSAPP
+// ----------------------------------------------------------
+
+      final phoneExists = await _phoneAlreadyRegistered(phone);
 
       if (phoneExists) {
-        _setError(
-          'Este número de WhatsApp ya está registrado en NOVENTA.',
-        );
+        if (!mounted) {
+          return;
+        }
 
         setState(() {
           _isLoading = false;
         });
 
+        _setError(
+          'Este número de WhatsApp ya está registrado en NOVENTA.',
+        );
+
         return;
       }
 
-      final credential =
-      await _authService.createAccount(
-        email: email,
-        password:
-        _passwordController.text,
+// ----------------------------------------------------------
+// VALIDAR NOMBRE COMPLETO
+// ----------------------------------------------------------
+
+      final nameExists = await _nameAlreadyRegistered(
+        fullName,
       );
 
-      final user =
-          credential.user;
+      if (nameExists) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        final duplicateResponse =
+        await _showDuplicateNameDialog(fullName);
+
+        // Usuario canceló el diálogo.
+        if (duplicateResponse == null) {
+          return;
+        }
+
+        // ----------------------------------------------------
+        // SÍ, SOY YO
+        // ----------------------------------------------------
+
+        if (duplicateResponse == true) {
+          await _sendPasswordRecovery();
+          return;
+        }
+
+        // ----------------------------------------------------
+        // NO, SOY OTRA PERSONA
+        // ----------------------------------------------------
+
+        final confirmedDifferentPerson =
+        await _showDifferentPersonDialog();
+
+        if (!confirmedDifferentPerson) {
+          return;
+        }
+
+        _duplicateNameAcknowledged = true;
+
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _isLoading = true;
+          _errorMessage = null;
+        });
+      }
+
+// ----------------------------------------------------------
+// CREAR CUENTA EN FIREBASE AUTH
+// ----------------------------------------------------------
+
+      final credential = await _authService.createAccount(
+        email: email,
+        password: _passwordController.text,
+      );
+
+      final user = credential.user;
 
       if (user == null) {
         throw Exception(
@@ -460,48 +881,53 @@ class _RegistrationPageState
 
       createdUid = user.uid;
 
+// ----------------------------------------------------------
+// ENVIAR CORREO DE VERIFICACIÓN
+// ----------------------------------------------------------
+
+      await user.sendEmailVerification();
+
+// ----------------------------------------------------------
+// CREAR DOCUMENTO DE USUARIO
+// ----------------------------------------------------------
+
       final now = DateTime.now();
 
-      final userData =
-      <String, dynamic>{
+      final userData = <String, dynamic>{
         'uid': createdUid,
-        'name':
-        _nameController.text.trim(),
-        'firstLastName':
-        _firstLastNameController
-            .text
-            .trim(),
-        'secondLastName':
-        _secondLastNameController
-            .text
-            .trim()
-            .isEmpty
+        'name': _nameController.text.trim(),
+        'firstLastName': _firstLastNameController.text.trim(),
+        'secondLastName': _secondLastNameController.text.trim().isEmpty
             ? null
-            : _secondLastNameController
-            .text
-            .trim(),
-        'fullName': _fullName,
-        'fullNameNormalized':
-        _normalizeName(_fullName),
-        'country':
-        _selectedCountry,
-        'birthDate':
-        Timestamp.fromDate(
+            : _secondLastNameController.text.trim(),
+        'fullName': fullName,
+        'fullNameNormalized': _normalizeName(fullName),
+        'country': _selectedCountry,
+        'birthDate': Timestamp.fromDate(
           _birthDate!,
         ),
         'whatsapp': phone,
         'email': email,
         'profilePhotoUrl': null,
-        'createdAt':
-        Timestamp.fromDate(now),
-        'updatedAt':
-        Timestamp.fromDate(now),
+        'createdAt': Timestamp.fromDate(now),
+        'updatedAt': Timestamp.fromDate(now),
+
+        // Solo será true cuando NOVENTA detectó un nombre
+        // duplicado y el usuario confirmó que NO es ese jugador.
+        'duplicateNameAcknowledged': _duplicateNameAcknowledged,
+
+        if (_duplicateNameAcknowledged)
+          'duplicateNameAcknowledgedAt': Timestamp.fromDate(now),
       };
 
       await _firestore
           .collection('users')
           .doc(createdUid)
           .set(userData);
+
+// ----------------------------------------------------------
+// MEMBRESÍA
+// ----------------------------------------------------------
 
       if (widget.access.isLeagueAdmin) {
         await _firestore
@@ -511,19 +937,23 @@ class _RegistrationPageState
           'userId': createdUid,
           'role': 'leagueAdmin',
           'status': 'active',
-          'createdAt':
-          Timestamp.fromDate(now),
-          'updatedAt':
-          Timestamp.fromDate(now),
+          'createdAt': Timestamp.fromDate(now),
+          'updatedAt': Timestamp.fromDate(now),
         });
       } else {
-        final fieldId =
-            widget.access.fieldId;
+        final fieldId = widget.access.fieldId;
 
-        if (fieldId == null ||
-            fieldId.isEmpty) {
+        final accessCodeId = widget.access.accessCodeId;
+
+        if (fieldId == null || fieldId.isEmpty) {
           throw Exception(
             'El código no tiene una cancha asociada.',
+          );
+        }
+
+        if (accessCodeId.isEmpty) {
+          throw Exception(
+            'El código de acceso no tiene un identificador válido.',
           );
         }
 
@@ -535,14 +965,13 @@ class _RegistrationPageState
             .set({
           'userId': createdUid,
           'fieldId': fieldId,
+          'accessCodeId': accessCodeId,
           'roles': <String>[
             'player',
           ],
           'status': 'active',
-          'createdAt':
-          Timestamp.fromDate(now),
-          'updatedAt':
-          Timestamp.fromDate(now),
+          'createdAt': Timestamp.fromDate(now),
+          'updatedAt': Timestamp.fromDate(now),
         });
       }
 
@@ -552,13 +981,13 @@ class _RegistrationPageState
 
       setState(() {
         _isLoading = false;
+
+        // Paso 3 = verificación de correo.
         _step = 3;
       });
     } on FirebaseAuthException catch (e) {
       if (createdUid != null) {
-        await _cleanupCreatedUser(
-          createdUid,
-        );
+        await _cleanupCreatedUser(createdUid);
       }
 
       if (!mounted) {
@@ -567,14 +996,11 @@ class _RegistrationPageState
 
       setState(() {
         _isLoading = false;
-        _errorMessage =
-            _authErrorMessage(e);
+        _errorMessage = _authErrorMessage(e);
       });
     } catch (e) {
       if (createdUid != null) {
-        await _cleanupCreatedUser(
-          createdUid,
-        );
+        await _cleanupCreatedUser(createdUid);
       }
 
       if (!mounted) {
@@ -583,11 +1009,160 @@ class _RegistrationPageState
 
       setState(() {
         _isLoading = false;
-        _errorMessage =
-        'No fue posible completar el registro. Intenta nuevamente.';
+        _errorMessage = _cleanErrorMessage(e);
       });
     }
   }
+
+// ============================================================
+// COMPROBAR VERIFICACIÓN
+// ============================================================
+
+  Future<void> _checkEmailVerification() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      _setError(
+        'No se encontró la cuenta.',
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await user.reload();
+
+      final updatedUser = FirebaseAuth.instance.currentUser;
+
+      if (updatedUser == null) {
+        throw Exception(
+          'No se encontró la cuenta.',
+        );
+      }
+
+      if (!updatedUser.emailVerified) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Tu correo todavía no está verificado. '
+              'Abre el enlace que enviamos a tu correo '
+              'y después presiona nuevamente '
+              '"Ya verifiqué mi correo".';
+        });
+
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Correo verificado correctamente.',
+          ),
+        ),
+      );
+
+      Navigator.popUntil(
+        context,
+            (route) => route.isFirst,
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = _authErrorMessage(e);
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = _cleanErrorMessage(e);
+      });
+    }
+  }
+
+// ============================================================
+// REENVIAR CORREO
+// ============================================================
+
+  Future<void> _resendVerificationEmail() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      _setError(
+        'No se encontró la cuenta.',
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await user.sendEmailVerification();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Correo de verificación enviado nuevamente.',
+          ),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = _authErrorMessage(e);
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = _cleanErrorMessage(e);
+      });
+    }
+  }
+
+// ============================================================
+// LIMPIAR USUARIO SI FALLA EL REGISTRO
+// ============================================================
 
   Future<void> _cleanupCreatedUser(
       String uid,
@@ -616,12 +1191,13 @@ class _RegistrationPageState
     } catch (_) {}
 
     try {
-      await FirebaseAuth
-          .instance
-          .currentUser
-          ?.delete();
+      await FirebaseAuth.instance.currentUser?.delete();
     } catch (_) {}
   }
+
+// ============================================================
+// MENSAJES DE FIREBASE
+// ============================================================
 
   String _authErrorMessage(
       FirebaseAuthException error,
@@ -639,10 +1215,34 @@ class _RegistrationPageState
       case 'network-request-failed':
         return 'No hay conexión con Firebase.';
 
+      case 'too-many-requests':
+        return 'Demasiados intentos. Intenta nuevamente más tarde.';
+
+      case 'operation-not-allowed':
+        return 'El método de autenticación no está habilitado.';
+
       default:
         return 'No fue posible crear la cuenta. Intenta nuevamente.';
     }
   }
+
+  String _cleanErrorMessage(
+      Object error,
+      ) {
+    final message = error.toString();
+
+    if (message.startsWith('Exception: ')) {
+      return message.substring(
+        'Exception: '.length,
+      );
+    }
+
+    return message;
+  }
+
+// ============================================================
+// TEXTOS
+// ============================================================
 
   String _registrationTitle() {
     if (widget.access.isLeagueAdmin) {
@@ -660,10 +1260,13 @@ class _RegistrationPageState
     return 'Tu cuenta podrá tener uno o varios roles dentro de NOVENTA.';
   }
 
+// ============================================================
+// DATOS PERSONALES
+// ============================================================
+
   Widget _buildPersonalData() {
     return Column(
-      crossAxisAlignment:
-      CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           _registrationTitle(),
@@ -674,9 +1277,7 @@ class _RegistrationPageState
             fontWeight: FontWeight.w900,
           ),
         ),
-
         const SizedBox(height: 10),
-
         Text(
           _registrationSubtitle(),
           style: const TextStyle(
@@ -685,75 +1286,51 @@ class _RegistrationPageState
             height: 1.35,
           ),
         ),
-
         if (!widget.access.isLeagueAdmin &&
-            widget.access.fieldName !=
-                null) ...[
+            widget.access.fieldName != null) ...[
           const SizedBox(height: 18),
           _InfoCard(
-            icon:
-            Icons.stadium_outlined,
-            title:
-            'Cancha de registro',
-            value:
-            widget.access.fieldName!,
+            icon: Icons.stadium_outlined,
+            title: 'Cancha de registro',
+            value: widget.access.fieldName!,
           ),
         ],
-
         const SizedBox(height: 28),
-
         _InputField(
           controller: _nameController,
           label: 'Nombre',
           hint: 'Tu nombre',
-          textCapitalization:
-          TextCapitalization.words,
+          textCapitalization: TextCapitalization.words,
         ),
-
         const SizedBox(height: 16),
-
         _InputField(
-          controller:
-          _firstLastNameController,
+          controller: _firstLastNameController,
           label: 'Primer apellido',
           hint: 'Primer apellido',
-          textCapitalization:
-          TextCapitalization.words,
+          textCapitalization: TextCapitalization.words,
         ),
-
         const SizedBox(height: 16),
-
         _InputField(
-          controller:
-          _secondLastNameController,
+          controller: _secondLastNameController,
           label: 'Segundo apellido',
-          hint:
-          'Segundo apellido (opcional)',
-          textCapitalization:
-          TextCapitalization.words,
+          hint: 'Segundo apellido (opcional)',
+          textCapitalization: TextCapitalization.words,
         ),
-
         const SizedBox(height: 16),
-
         CountrySelector(
-          selectedCountry:
-          _selectedCountry,
+          selectedCountry: _selectedCountry,
           onSelected: (country) {
             setState(() {
-              _selectedCountry =
-                  country.name;
+              _selectedCountry = country.name;
               _errorMessage = null;
             });
           },
         ),
-
         const SizedBox(height: 16),
-
         _DateField(
           value: _formatBirthDate(),
           onTap: _selectBirthDate,
         ),
-
         if (_age != null) ...[
           const SizedBox(height: 8),
           Text(
@@ -768,10 +1345,13 @@ class _RegistrationPageState
     );
   }
 
+// ============================================================
+// CONTRASEÑA
+// ============================================================
+
   Widget _buildPassword() {
     return Column(
-      crossAxisAlignment:
-      CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Crea tu\ncontraseña',
@@ -782,9 +1362,7 @@ class _RegistrationPageState
             fontWeight: FontWeight.w900,
           ),
         ),
-
         const SizedBox(height: 10),
-
         const Text(
           'Utilizarás esta contraseña para iniciar sesión en NOVENTA.',
           style: TextStyle(
@@ -793,21 +1371,16 @@ class _RegistrationPageState
             height: 1.35,
           ),
         ),
-
         const SizedBox(height: 28),
-
         _InputField(
-          controller:
-          _passwordController,
+          controller: _passwordController,
           label: 'Contraseña',
           hint: 'Mínimo 6 caracteres',
-          obscureText:
-          _obscurePassword,
+          obscureText: _obscurePassword,
           suffixIcon: IconButton(
             onPressed: () {
               setState(() {
-                _obscurePassword =
-                !_obscurePassword;
+                _obscurePassword = !_obscurePassword;
               });
             },
             icon: Icon(
@@ -818,17 +1391,12 @@ class _RegistrationPageState
             ),
           ),
         ),
-
         const SizedBox(height: 16),
-
         _InputField(
-          controller:
-          _confirmPasswordController,
+          controller: _confirmPasswordController,
           label: 'Confirmar contraseña',
-          hint:
-          'Repite tu contraseña',
-          obscureText:
-          _obscureConfirmPassword,
+          hint: 'Repite tu contraseña',
+          obscureText: _obscureConfirmPassword,
           suffixIcon: IconButton(
             onPressed: () {
               setState(() {
@@ -848,10 +1416,13 @@ class _RegistrationPageState
     );
   }
 
+// ============================================================
+// CONTACTO
+// ============================================================
+
   Widget _buildContact() {
     return Column(
-      crossAxisAlignment:
-      CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Datos de contacto',
@@ -861,9 +1432,7 @@ class _RegistrationPageState
             fontWeight: FontWeight.w900,
           ),
         ),
-
         const SizedBox(height: 10),
-
         const Text(
           'El número de WhatsApp será único para tu cuenta.',
           style: TextStyle(
@@ -872,104 +1441,177 @@ class _RegistrationPageState
             height: 1.35,
           ),
         ),
-
         const SizedBox(height: 28),
-
         _InputField(
-          controller:
-          _whatsappController,
+          controller: _whatsappController,
           label: 'WhatsApp',
           hint: 'Número de WhatsApp',
-          keyboardType:
-          TextInputType.phone,
+          keyboardType: TextInputType.phone,
         ),
-
         const SizedBox(height: 16),
-
         _InputField(
-          controller:
-          _emailController,
+          controller: _emailController,
           label: 'Correo electrónico',
           hint: 'correo@ejemplo.com',
-          keyboardType:
-          TextInputType.emailAddress,
+          keyboardType: TextInputType.emailAddress,
         ),
       ],
     );
   }
 
-  Widget _buildCompleted() {
-    final title =
-    widget.access.isLeagueAdmin
-        ? 'Registro completado'
-        : 'Cuenta creada';
+// ============================================================
+// VERIFICACIÓN DE CORREO
+// ============================================================
 
-    final description =
-    widget.access.isLeagueAdmin
-        ? 'Tu cuenta de administrador de liga ha sido creada correctamente.'
-        : 'Tu cuenta ha sido creada correctamente. El administrador podrá asignarte los roles correspondientes.';
+  Widget _buildEmailVerification() {
+    final email = _emailController.text.trim();
 
     return Column(
-      crossAxisAlignment:
-      CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const SizedBox(height: 35),
-
+        const SizedBox(height: 30),
         Container(
-          width: 78,
-          height: 78,
+          width: 82,
+          height: 82,
           decoration: BoxDecoration(
-            color: _limeColor
-                .withValues(alpha: 0.12),
+            color: _limeColor.withValues(
+              alpha: 0.12,
+            ),
             shape: BoxShape.circle,
             border: Border.all(
-              color: _limeColor
-                  .withValues(alpha: 0.35),
+              color: _limeColor.withValues(
+                alpha: 0.35,
+              ),
             ),
           ),
           child: const Icon(
-            Icons.check_rounded,
+            Icons.mark_email_unread_outlined,
             color: _limeColor,
             size: 42,
           ),
         ),
-
         const SizedBox(height: 25),
-
-        Text(
-          title,
+        const Text(
+          'Verifica tu\ncorreo electrónico',
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
             fontSize: 27,
+            height: 1.05,
             fontWeight: FontWeight.w900,
           ),
         ),
-
-        const SizedBox(height: 12),
-
-        Text(
-          description,
+        const SizedBox(height: 14),
+        const Text(
+          'Te enviamos un enlace de verificación a:',
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white60,
             fontSize: 14,
-            height: 1.45,
+            height: 1.4,
           ),
         ),
-
-        const SizedBox(height: 28),
-
-        if (!widget.access.isLeagueAdmin)
-          _InfoCard(
-            icon: Icons.verified_user_outlined,
-            title: 'Estado',
-            value:
-            'Registro realizado correctamente',
+        const SizedBox(height: 8),
+        Text(
+          email,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: _limeColor,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
           ),
+        ),
+        const SizedBox(height: 18),
+        const Text(
+          'Abre tu correo y pulsa el enlace de verificación. '
+              'Después regresa a NOVENTA y confirma que ya verificaste tu correo.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white54,
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 28),
+        _InfoCard(
+          icon: Icons.mark_email_read_outlined,
+          title: 'Revisa también',
+          value:
+          'Si no encuentras el correo, revisa tu carpeta de spam o correo no deseado.',
+        ),
+        const SizedBox(height: 22),
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton(
+            onPressed:
+            _isLoading ? null : _checkEmailVerification,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _limeColor,
+              foregroundColor: Colors.black,
+              disabledBackgroundColor:
+              _limeColor.withValues(
+                alpha: 0.35,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              elevation: 0,
+            ),
+            child: _isLoading
+                ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Colors.black,
+              ),
+            )
+                : const Text(
+              'YA VERIFIQUÉ MI CORREO',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.7,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: OutlinedButton(
+            onPressed:
+            _isLoading ? null : _resendVerificationEmail,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: BorderSide(
+                color: Colors.white.withValues(
+                  alpha: 0.18,
+                ),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: const Text(
+              'REENVIAR CORREO',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.7,
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
+
+// ============================================================
+// PASO ACTUAL
+// ============================================================
 
   Widget _buildCurrentStep() {
     switch (_step) {
@@ -983,30 +1625,33 @@ class _RegistrationPageState
         return _buildContact();
 
       case 3:
-        return _buildCompleted();
+        return _buildEmailVerification();
 
       default:
         return const SizedBox();
     }
   }
 
+// ============================================================
+// TEXTO DEL BOTÓN INFERIOR
+// ============================================================
+
   String _buttonText() {
     if (_step == 2) {
       return 'Crear cuenta';
     }
 
-    if (_step == 3) {
-      return 'Continuar';
-    }
-
     return 'Continuar';
   }
+
+// ============================================================
+// BUILD
+// ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-      _backgroundColor,
+      backgroundColor: _backgroundColor,
       body: Stack(
         children: [
           Positioned.fill(
@@ -1015,20 +1660,18 @@ class _RegistrationPageState
               fit: BoxFit.cover,
             ),
           ),
-
           Positioned.fill(
             child: Container(
-              color: Colors.black
-                  .withValues(alpha: 0.76),
+              color: Colors.black.withValues(
+                alpha: 0.76,
+              ),
             ),
           ),
-
           SafeArea(
             child: Column(
               children: [
                 Padding(
-                  padding:
-                  const EdgeInsets.fromLTRB(
+                  padding: const EdgeInsets.fromLTRB(
                     20,
                     14,
                     20,
@@ -1038,23 +1681,18 @@ class _RegistrationPageState
                     children: [
                       _BackButton(
                         onPressed:
-                        _previousStep,
+                        _step == 3 ? null : _previousStep,
                       ),
-
                       const SizedBox(width: 14),
-
                       Expanded(
                         child: Text(
-                          widget.access
-                              .isLeagueAdmin
+                          widget.access.isLeagueAdmin
                               ? 'ADMINISTRADOR DE LIGA'
                               : 'REGISTRO',
-                          style:
-                          const TextStyle(
+                          style: const TextStyle(
                             color: _limeColor,
                             fontSize: 10,
-                            fontWeight:
-                            FontWeight.w800,
+                            fontWeight: FontWeight.w800,
                             letterSpacing: 1.7,
                           ),
                         ),
@@ -1062,82 +1700,57 @@ class _RegistrationPageState
                     ],
                   ),
                 ),
-
                 if (_step < 3)
                   _ProgressIndicator(
                     step: _step,
                   ),
-
                 Expanded(
-                  child:
-                  SingleChildScrollView(
-                    padding:
-                    const EdgeInsets.fromLTRB(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(
                       24,
                       18,
                       24,
                       30,
                     ),
-                    child:
-                    _buildCurrentStep(),
+                    child: _buildCurrentStep(),
                   ),
                 ),
-
-                if (_errorMessage !=
-                    null &&
-                    _step < 3)
+                if (_errorMessage != null)
                   Padding(
-                    padding:
-                    const EdgeInsets.fromLTRB(
+                    padding: const EdgeInsets.fromLTRB(
                       24,
                       0,
                       24,
                       10,
                     ),
-                    child:
-                    _ErrorMessage(
-                      message:
-                      _errorMessage!,
+                    child: _ErrorMessage(
+                      message: _errorMessage!,
                     ),
                   ),
-
                 if (_step < 3)
                   Padding(
-                    padding:
-                    const EdgeInsets.fromLTRB(
+                    padding: const EdgeInsets.fromLTRB(
                       24,
                       0,
                       24,
                       18,
                     ),
-                    child:
-                    SizedBox(
+                    child: SizedBox(
                       width: double.infinity,
                       height: 54,
-                      child:
-                      ElevatedButton(
+                      child: ElevatedButton(
                         onPressed:
-                        _isLoading
-                            ? null
-                            : _nextStep,
-                        style:
-                        ElevatedButton.styleFrom(
-                          backgroundColor:
-                          _limeColor,
-                          foregroundColor:
-                          Colors.black,
+                        _isLoading ? null : _nextStep,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _limeColor,
+                          foregroundColor: Colors.black,
                           disabledBackgroundColor:
-                          _limeColor
-                              .withValues(
+                          _limeColor.withValues(
                             alpha: 0.35,
                           ),
-                          shape:
-                          RoundedRectangleBorder(
+                          shape: RoundedRectangleBorder(
                             borderRadius:
-                            BorderRadius
-                                .circular(
-                              16,
-                            ),
+                            BorderRadius.circular(16),
                           ),
                           elevation: 0,
                         ),
@@ -1147,76 +1760,16 @@ class _RegistrationPageState
                           height: 22,
                           child:
                           CircularProgressIndicator(
-                            strokeWidth:
-                            2.5,
-                            color:
-                            Colors.black,
+                            strokeWidth: 2.5,
+                            color: Colors.black,
                           ),
                         )
                             : Text(
                           _buttonText(),
-                          style:
-                          const TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
-                            fontWeight:
-                            FontWeight
-                                .w900,
-                            letterSpacing:
-                            0.8,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                if (_step == 3)
-                  Padding(
-                    padding:
-                    const EdgeInsets.fromLTRB(
-                      24,
-                      0,
-                      24,
-                      18,
-                    ),
-                    child:
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child:
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.popUntil(
-                            context,
-                                (route) =>
-                            route.isFirst,
-                          );
-                        },
-                        style:
-                        ElevatedButton.styleFrom(
-                          backgroundColor:
-                          _limeColor,
-                          foregroundColor:
-                          Colors.black,
-                          shape:
-                          RoundedRectangleBorder(
-                            borderRadius:
-                            BorderRadius
-                                .circular(
-                              16,
-                            ),
-                          ),
-                          elevation: 0,
-                        ),
-                        child:
-                        const Text(
-                          'ENTRAR A NOVENTA',
-                          style:
-                          TextStyle(
-                            fontSize: 14,
-                            fontWeight:
-                            FontWeight.w900,
-                            letterSpacing:
-                            0.8,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.8,
                           ),
                         ),
                       ),
@@ -1231,6 +1784,10 @@ class _RegistrationPageState
   }
 }
 
+// ================================================================
+// INDICADOR DE PROGRESO
+// ================================================================
+
 class _ProgressIndicator extends StatelessWidget {
   const _ProgressIndicator({
     required this.step,
@@ -1238,14 +1795,12 @@ class _ProgressIndicator extends StatelessWidget {
 
   final int step;
 
-  static const Color _limeColor =
-  Color(0xFF9DFF21);
+  static const Color _limeColor = Color(0xFF9DFF21);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-      const EdgeInsets.fromLTRB(
+      padding: const EdgeInsets.fromLTRB(
         24,
         8,
         24,
@@ -1255,25 +1810,20 @@ class _ProgressIndicator extends StatelessWidget {
         children: List.generate(
           3,
               (index) {
-            final active =
-                index <= step;
+            final active = index <= step;
 
             return Expanded(
               child: Container(
                 height: 4,
                 margin: EdgeInsets.only(
-                  right:
-                  index == 2 ? 0 : 6,
+                  right: index == 2 ? 0 : 6,
                 ),
-                decoration:
-                BoxDecoration(
+                decoration: BoxDecoration(
                   color: active
                       ? _limeColor
                       : Colors.white12,
                   borderRadius:
-                  BorderRadius.circular(
-                    10,
-                  ),
+                  BorderRadius.circular(10),
                 ),
               ),
             );
@@ -1283,6 +1833,10 @@ class _ProgressIndicator extends StatelessWidget {
     );
   }
 }
+
+// ================================================================
+// INPUT
+// ================================================================
 
 class _InputField extends StatelessWidget {
   const _InputField({
@@ -1300,13 +1854,11 @@ class _InputField extends StatelessWidget {
   final String label;
   final String hint;
   final TextInputType? keyboardType;
-  final TextCapitalization
-  textCapitalization;
+  final TextCapitalization textCapitalization;
   final bool obscureText;
   final Widget? suffixIcon;
 
-  static const Color _limeColor =
-  Color(0xFF9DFF21);
+  static const Color _limeColor = Color(0xFF9DFF21);
 
   @override
   Widget build(BuildContext context) {
@@ -1322,9 +1874,7 @@ class _InputField extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-
         const SizedBox(height: 8),
-
         TextField(
           controller: controller,
           keyboardType: keyboardType,
@@ -1337,29 +1887,23 @@ class _InputField extends StatelessWidget {
             color: Colors.white,
             fontSize: 16,
           ),
-          decoration:
-          InputDecoration(
+          decoration: InputDecoration(
             hintText: hint,
-            hintStyle:
-            const TextStyle(
+            hintStyle: const TextStyle(
               color: Colors.white30,
             ),
             filled: true,
             fillColor:
             const Color(0xFF171718),
-            suffixIcon:
-            suffixIcon,
+            suffixIcon: suffixIcon,
             contentPadding:
             const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 17,
             ),
-            border:
-            OutlineInputBorder(
+            border: OutlineInputBorder(
               borderRadius:
-              BorderRadius.circular(
-                14,
-              ),
+              BorderRadius.circular(14),
               borderSide:
               const BorderSide(
                 color: Colors.white12,
@@ -1368,9 +1912,7 @@ class _InputField extends StatelessWidget {
             enabledBorder:
             OutlineInputBorder(
               borderRadius:
-              BorderRadius.circular(
-                14,
-              ),
+              BorderRadius.circular(14),
               borderSide:
               const BorderSide(
                 color: Colors.white12,
@@ -1379,9 +1921,7 @@ class _InputField extends StatelessWidget {
             focusedBorder:
             OutlineInputBorder(
               borderRadius:
-              BorderRadius.circular(
-                14,
-              ),
+              BorderRadius.circular(14),
               borderSide:
               const BorderSide(
                 color: _limeColor,
@@ -1394,6 +1934,10 @@ class _InputField extends StatelessWidget {
     );
   }
 }
+
+// ================================================================
+// FECHA
+// ================================================================
 
 class _DateField extends StatelessWidget {
   const _DateField({
@@ -1425,9 +1969,7 @@ class _DateField extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-
         const SizedBox(height: 8),
-
         InkWell(
           onTap: onTap,
           borderRadius:
@@ -1439,14 +1981,11 @@ class _DateField extends StatelessWidget {
               horizontal: 16,
               vertical: 17,
             ),
-            decoration:
-            BoxDecoration(
+            decoration: BoxDecoration(
               color:
               const Color(0xFF171718),
               borderRadius:
-              BorderRadius.circular(
-                14,
-              ),
+              BorderRadius.circular(14),
               border: Border.all(
                 color: Colors.white12,
               ),
@@ -1458,9 +1997,7 @@ class _DateField extends StatelessWidget {
                   color: _limeColor,
                   size: 21,
                 ),
-
                 const SizedBox(width: 12),
-
                 Expanded(
                   child: Text(
                     value,
@@ -1472,7 +2009,6 @@ class _DateField extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 const Icon(
                   Icons.chevron_right,
                   color: Colors.white54,
@@ -1485,6 +2021,10 @@ class _DateField extends StatelessWidget {
     );
   }
 }
+
+// ================================================================
+// INFO CARD
+// ================================================================
 
 class _InfoCard extends StatelessWidget {
   const _InfoCard({
@@ -1504,10 +2044,8 @@ class _InfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding:
-      const EdgeInsets.all(14),
-      decoration:
-      BoxDecoration(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
         color: _limeColor.withValues(
           alpha: 0.06,
         ),
@@ -1526,9 +2064,7 @@ class _InfoCard extends StatelessWidget {
             color: _limeColor,
             size: 21,
           ),
-
           const SizedBox(width: 12),
-
           Expanded(
             child: Column(
               crossAxisAlignment:
@@ -1536,17 +2072,15 @@ class _InfoCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style:
-                  const TextStyle(
-                    color:
-                    Colors.white54,
+                  style: const TextStyle(
+                    color: Colors.white54,
                     fontSize: 11,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   value,
-                  maxLines: 2,
+                  maxLines: 3,
                   overflow:
                   TextOverflow.ellipsis,
                   style:
@@ -1566,12 +2100,16 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
+// ================================================================
+// BOTÓN ATRÁS
+// ================================================================
+
 class _BackButton extends StatelessWidget {
   const _BackButton({
     required this.onPressed,
   });
 
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -1580,25 +2118,32 @@ class _BackButton extends StatelessWidget {
       child: Container(
         width: 42,
         height: 42,
-        decoration:
-        BoxDecoration(
-          color: Colors.black
-              .withValues(alpha: 0.55),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(
+            alpha: 0.55,
+          ),
           shape: BoxShape.circle,
           border: Border.all(
-            color: Colors.white
-                .withValues(alpha: 0.14),
+            color: Colors.white.withValues(
+              alpha: 0.14,
+            ),
           ),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.arrow_back_ios_new,
-          color: Colors.white,
+          color: onPressed == null
+              ? Colors.white24
+              : Colors.white,
           size: 17,
         ),
       ),
     );
   }
 }
+
+// ================================================================
+// MENSAJE DE ERROR
+// ================================================================
 
 class _ErrorMessage
     extends StatelessWidget {
@@ -1617,15 +2162,16 @@ class _ErrorMessage
         horizontal: 12,
         vertical: 10,
       ),
-      decoration:
-      BoxDecoration(
-        color: Colors.red
-            .withValues(alpha: 0.10),
+      decoration: BoxDecoration(
+        color: Colors.red.withValues(
+          alpha: 0.10,
+        ),
         borderRadius:
         BorderRadius.circular(10),
         border: Border.all(
-          color: Colors.red
-              .withValues(alpha: 0.25),
+          color: Colors.red.withValues(
+            alpha: 0.25,
+          ),
         ),
       ),
       child: Row(
@@ -1637,14 +2183,11 @@ class _ErrorMessage
             color: Colors.redAccent,
             size: 18,
           ),
-
           const SizedBox(width: 8),
-
           Expanded(
             child: Text(
               message,
-              style:
-              const TextStyle(
+              style: const TextStyle(
                 color: Colors.redAccent,
                 fontSize: 12,
                 height: 1.3,
